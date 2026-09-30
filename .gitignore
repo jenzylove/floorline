@@ -1,0 +1,18 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keystore/
+wallets/
+# build output
+node_modules/
+out/
+cache/
+broadcast/
+dist/
+build/
+.expo/
+.next/
+coverage/
