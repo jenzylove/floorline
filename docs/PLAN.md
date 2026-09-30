@@ -1,4 +1,4 @@
-# Cover — Plan
+# Floorline — Plan
 
 Window: 30 Sep → 12 Oct 2026 (freeze), submit 13 Oct. Each phase ends with a check that proves it.
 

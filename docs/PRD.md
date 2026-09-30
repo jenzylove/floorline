@@ -1,4 +1,4 @@
-# Cover — PRD
+# Floorline — PRD
 
 Status: LOCKED 2026-09-30. Monad Metropolis, Track 01 (Onchain Finance & Trading).
 Deadline: 13 Oct 2026, 11:59 PM ET (14 Oct 03:59 UTC). Target: code freeze 12 Oct.
@@ -145,4 +145,4 @@ Envio (all tracks):
   Testnet Kuru markets are permissionless (spike 2). Decision: build on testnet Kuru; mainnet
   market if Kuru lists it.
 - Perpl testnet uses a test "USD" token, not AUSD. Mainnet Perpl uses AUSD.
-- Name clash: "Cover Protocol" was a DeFi insurance project in 2020–21. Working name only.
+- Name: Floorline (chosen 30 Sep). No crypto project found under that name.
