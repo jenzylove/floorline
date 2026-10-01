@@ -16,3 +16,5 @@ build/
 .expo/
 .next/
 coverage/
+# keeper runtime logs
+logs/

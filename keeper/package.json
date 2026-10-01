@@ -1,0 +1,25 @@
+{
+  "name": "@floorline/keeper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Floorline hedger: trades on Perpl through its API to hedge the vault's sold protection",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "probe": "tsx scripts/probe-market-data.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "viem": "^2.57.2",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
