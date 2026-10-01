@@ -1,0 +1,11 @@
+{
+  "schedule": "0 */5 * * * *",
+  "perplApi": "https://app.perpl.xyz/api",
+  "perplMarketId": 10,
+  "candleSeconds": 300,
+  "windowHours": 24,
+  "chainName": "monad-mainnet",
+  "vault": "0x85c57FEc4c4861B7D3a99D47C5189de62221a748",
+  "receiver": "REPLACE_WITH_CRE_RECEIVER_ADDRESS",
+  "gasLimit": "400000"
+}

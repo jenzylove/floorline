@@ -1,0 +1,5 @@
+# Chainlink CRE project: Floorline. We simulate (deploy access is gated by Chainlink sales).
+staging-settings:
+  rpcs:
+    - chain-name: monad-mainnet
+      url: https://rpc.monad.xyz
