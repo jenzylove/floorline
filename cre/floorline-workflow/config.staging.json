@@ -6,6 +6,6 @@
   "windowHours": 24,
   "chainName": "monad-mainnet",
   "vault": "0x85c57FEc4c4861B7D3a99D47C5189de62221a748",
-  "receiver": "REPLACE_WITH_CRE_RECEIVER_ADDRESS",
+  "receiver": "0xA211561BfF51b923CcDfEfdadbc9c376238D697c",
   "gasLimit": "400000"
 }
