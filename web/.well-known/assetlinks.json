@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds", "delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jenzylove.floorline",
+      "sha256_cert_fingerprints": ["A2:6D:9D:1C:63:16:7A:1B:5B:FA:DE:1D:45:73:76:F9:DC:92:C8:1B:73:B6:22:BC:D7:03:EF:99:9D:A4:3E:FE"]
+    }
+  }
+]
