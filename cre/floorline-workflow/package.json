@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "bunx cre-setup",
+    "postinstall": "bun x cre-setup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -22,7 +22,7 @@ notepad .env                      # CRE_ETH_PRIVATE_KEY=<throwaway key, 64 hex, 
 cd floorline-workflow
 bun install
 cd ..
-cre workflow simulate floorline-workflow --target staging-settings
+& "$env:LOCALAPPDATA\Programs\cre\cre.exe" workflow simulate floorline-workflow --target staging-settings
 ```
 
 Add `--broadcast` to send the reports on-chain (needs a little MON for gas on that key).
