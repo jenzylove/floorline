@@ -26,7 +26,7 @@ export function loadConfig() {
     markets: env("HEDGE_MARKETS", "10").split(",").map(Number),
     /** Trading needs a Perpl API key (trade scope) and its Ed25519 private key. Without them the bot runs read-only. */
     apiKey: process.env.PERPL_API_KEY,
-    apiPrivateKeyHex: process.env.PERPL_API_ED25519_KEY,
+    apiPrivateKeyHex: process.env.PERPL_API_KEY_SECRET,
     tradingEnabled: process.env.TRADING_ENABLED === "1",
     risk: {
       /** Do nothing while |target - current| is below this share of the target. */
