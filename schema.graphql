@@ -1,0 +1,55 @@
+"One row per vault action, newest first by block: the app's history and /proof read this."
+type VaultEvent {
+  id: ID!
+  kind: String! # deposit | withdraw | seriesCreated | bought | settled | redeemed
+  seriesId: BigInt
+  account: String
+  amount: BigInt # AUSD (6dp) for deposit/withdraw/premium/paid, units (1e18) for bought/redeemed
+  premium: BigInt
+  collateral: BigInt
+  price: BigInt # strike for seriesCreated, settle price for settled (AUSD 6dp)
+  payoutPerToken: BigInt
+  expiry: BigInt
+  token: String
+  blockNumber: Int!
+  timestamp: Int!
+  txHash: String!
+}
+
+type Series {
+  id: ID! # series id
+  marketId: BigInt!
+  strike: BigInt!
+  expiry: BigInt!
+  token: String!
+  unitsSold: BigInt!
+  premiums: BigInt!
+  settled: Boolean!
+  settlePrice: BigInt
+  payoutPerToken: BigInt
+}
+
+type VolUpdate {
+  id: ID!
+  marketId: BigInt!
+  vol: BigInt! # 1e18 = 100% a year
+  source: String!
+  blockNumber: Int!
+  timestamp: Int!
+  txHash: String!
+}
+
+"A change to the hedge account's short on Perpl, read from Perpl's own position events."
+type HedgeFill {
+  id: ID!
+  accountId: BigInt!
+  perpId: BigInt!
+  kind: String! # opened | increased | decreased | closed
+  lotsBefore: BigInt!
+  lotsAfter: BigInt!
+  price: BigInt # Perpl price units
+  realizedPnl: BigInt # collateral units (6dp), on reductions
+  blockNumber: Int!
+  timestamp: Int!
+  txHash: String!
+}
