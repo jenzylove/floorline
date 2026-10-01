@@ -36,6 +36,7 @@ export async function readExposure(
     const s = await client.readContract({ address: vault, abi: vaultAbi, functionName: "getSeries", args: [id] });
     const supply = (await client.readContract({ address: s.token, abi: erc20Abi, functionName: "totalSupply" })) as bigint;
     if (supply === 0n) continue;
+    if (Number(s.expiry) <= nowSec) continue; // expired, waiting to be settled: the payoff is fixed by the settle price, stop hedging
     const marketId = Number(s.marketId);
     const spot = spotByMarket.get(marketId);
     if (spot === undefined) continue;
