@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floorline</title>
+<meta name="description" content="Protection for your coins on Monad. Pay a small fixed amount, keep the coins and the upside.">
+<style>
+  :root { --bg:#0e0f0c; --fg:#f2efe6; --muted:#9b978c; --line:#d8ff3d; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f4f1e8; --fg:#14140f; --muted:#5f5c53; --line:#3a5a00; } }
+  * { box-sizing:border-box; margin:0; }
+  body { min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg);
+         font:16px/1.5 ui-sans-serif, system-ui, sans-serif; padding:24px 16px; }
+  main { max-width:640px; }
+  h1 { font-size:clamp(40px,9vw,88px); letter-spacing:-0.03em; line-height:1; }
+  .floor { height:2px; background:var(--line); margin:28px 0; }
+  p { color:var(--muted); font-size:18px; }
+  small { display:block; margin-top:28px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Floorline</h1>
+  <div class="floor"></div>
+  <p>Protection for your coins on Monad. Pay a small fixed amount, and your MON can't lose more than you chose until the date you chose. You keep the coins and the upside.</p>
+  <small>In development for Monad Metropolis, 2026.</small>
+</main>
+</body>
+</html>
