@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Floorline hedger: trades on Perpl through its API to hedge the vault's sold protection",
   "scripts": {
-    "start": "tsx src/main.ts",
+    "start": "tsx --env-file=.env src/main.ts",
     "probe": "tsx scripts/probe-market-data.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

@@ -1,0 +1,8 @@
+{
+  "network": "Monad mainnet (chain 143)",
+  "vault": "0x85c57FEc4c4861B7D3a99D47C5189de62221a748",
+  "perpl": "0x34B6552d57a35a1D042CcAe1951BD1C370112a6F",
+  "perpMarketId": 10,
+  "hedgeAccountId": null,
+  "txs": { "deposit": null, "createSeries": null, "buy": null, "settle": null, "redeem": null }
+}
