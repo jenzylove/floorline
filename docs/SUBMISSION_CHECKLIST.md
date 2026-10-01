@@ -28,7 +28,7 @@ Perpl — Best use of Perpl's API (all tracks):
 - [ ] Production-ready automation on Perpl (hedging keeper)
 
 Chainlink — Best workflow with CRE (all tracks):
-- [ ] CRE workflow built/simulated/deployed as an orchestration layer (vol input + settlement)
+- [x] CRE workflow built/simulated/deployed as an orchestration layer (vol input + settlement). Simulated, with a broadcast run that wrote vol on Monad mainnet: `0x7a48e2c8…1c13`
 
 Aurora Intents (all tracks):
 - [ ] Any-chain deposit or deposit-and-execute into the app
