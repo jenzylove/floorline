@@ -28,6 +28,12 @@
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b214e7d7-9601-4c34-a00d-bdc0e7ad32dc"
+      }
+    },
+    "owner": "jdollars-team"
   }
 }
