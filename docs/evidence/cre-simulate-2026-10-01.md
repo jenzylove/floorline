@@ -1,0 +1,23 @@
+# CRE simulation, 2026-10-01
+
+Run by the owner on Windows with CRE CLI (`cre workflow simulate floorline-workflow --target staging-settings`),
+dry run (no `--broadcast`), so the write returns a zero tx hash.
+
+```
+✓ Workflow compiled
+✓ Simulation limits enabled
+  Binary hash: 0878131ecd952917934d7bbaf545552a773c812704a4f5101cbbe4ede3fb76b0
+  Config hash: 3388d3bcb0593c9f7ff7cc55df8d066b8617921d489dc2d157043ec796238189
+2026-10-01T09:49:38Z [SIMULATION] Simulator Initialized
+2026-10-01T09:49:38Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+2026-10-01T09:50:02Z [USER LOG] MON realised vol (24h of 300s candles, median of nodes): 2.542954
+2026-10-01T09:50:03Z [USER LOG] vol report tx: 0x0000000000000000000000000000000000000000000000000000000000000000
+
+✓ Workflow Simulation Result:
+"vol updated, 0 active series, 0 settled"
+```
+
+What it shows: the workflow compiles to WASM, reads Perpl's public MON candles, computes realised vol (254.3%
+annualised, matching an independent calculation from the same candles earlier the same day: 253.95%), builds a
+signed report for `CreReceiver` (`0xA211561BfF51b923CcDfEfdadbc9c376238D697c`), and reads the vault's active series
+(none at the time, since series 0 was already settled).
