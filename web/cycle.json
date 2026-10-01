@@ -3,6 +3,12 @@
   "vault": "0x85c57FEc4c4861B7D3a99D47C5189de62221a748",
   "perpl": "0x34B6552d57a35a1D042CcAe1951BD1C370112a6F",
   "perpMarketId": 10,
-  "hedgeAccountId": null,
-  "txs": { "deposit": null, "createSeries": null, "buy": null, "settle": null, "redeem": null }
+  "hedgeAccountId": 5374,
+  "txs": {
+    "deposit": "0xe71cf618f8c18ed85660701e31f8862ce3ac485bf68538fc78d8de34c04626f8",
+    "createSeries": "0x0073212d2a920121efc4a3fe06fc034202f694a9f6ae047303875430376d62cc",
+    "buy": "0x5fa4cea0c6cad924ecdda3e0dbe983b5f69bb2fc21554b401251e7f652b40c47",
+    "settle": null,
+    "redeem": null
+  }
 }
