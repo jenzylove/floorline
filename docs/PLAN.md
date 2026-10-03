@@ -36,8 +36,8 @@ Window: 30 Sep → 12 Oct 2026 (freeze), submit 13 Oct. Each phase ends with a c
 |---|---|
 | Contract can own a Perpl account and trade | **Known** — spike 1 passed on a mainnet fork |
 | Perpl order needs `maxNegPnlCollatBPS` set (0 makes taker orders revert) | **Known** — spike 1 |
-| Kuru mainnet market creation | **Known blocker** — owner-only; testnet open. Ticket sent |
-| Kuru Spot V2 (current generation) market creation on testnet | **Needs a spike** (the open testnet test used the older Router) |
+| Kuru mainnet market creation | **Known** — owner-only on mainnet. Kuru (3 Oct): contracts are being revamped, deploy on Spot V2 testnet; they offered to stay in sync |
+| Kuru Spot V2 (current generation) market creation on testnet | **Needs a spike** (the open testnet test used the older Router). Kuru confirmed Spot V2 testnet is the right target |
 | CRE on Monad | **Known** — listed as supported (mainnet CLI ≥ 1.29, testnet ≥ 1.30) |
 | CRE deploy access (may need Chainlink approval) | **Needs a spike** — fallback: simulated workflow + same logic in our keeper, stated honestly |
 | Mera passkeys inside an Expo app (PRF support on device) | **Needs a spike** — PREMIA did Expo + Mera on Android, so likely |
@@ -46,3 +46,5 @@ Window: 30 Sep → 12 Oct 2026 (freeze), submit 13 Oct. Each phase ends with a c
 | Aurora Intents: AUSD is not in the 1Click token list; USDC on Monad is | **Known** — deposit lands as USDC, swap to AUSD on Kuru/Monday Trade |
 | Vault loss in a crash | **Known** — fully backed so it always pays; hedge reduces loss; shown on Earn tab |
 | Mainnet funds needed | **Known** — ask the user for ~$100 AUSD + MON gas before phase 3 |
+| Perpl builder code (attribution of our API volume) | **Open** — Perpl (1 Oct): no builder ID assigned; apply via their builder codes form. API trading already works without it |
+| Monday Trade RWA (stocks) API | **Known, not needed** — Monday Trade (1 Oct): API access restricted; wallets trade without KYC, country restrictions only. Floorline uses only their permissionless spot pools |
