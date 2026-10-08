@@ -1,7 +1,8 @@
 "One row per vault action, newest first by block: the app's history and /proof read this."
 type VaultEvent {
   id: ID!
-  kind: String! # deposit | withdraw | seriesCreated | bought | settled | redeemed
+  vault: String! # v1 and v2 are both indexed
+  kind: String! # deposit | withdraw | seriesCreated | bought | settled | settledLate | redeemed | hedgeAccountOpened
   seriesId: BigInt
   account: String
   amount: BigInt # AUSD (6dp) for deposit/withdraw/premium/paid, units (1e18) for bought/redeemed
@@ -17,7 +18,9 @@ type VaultEvent {
 }
 
 type Series {
-  id: ID! # series id
+  id: ID! # "<vault>_<series id>"
+  vault: String!
+  seriesId: BigInt!
   marketId: BigInt!
   strike: BigInt!
   expiry: BigInt!
@@ -31,6 +34,8 @@ type Series {
 
 type VolUpdate {
   id: ID!
+  feed: String!
+  kind: String! # pricing (keeper, step limited) | observed (Chainlink CRE, never priced)
   marketId: BigInt!
   vol: BigInt! # 1e18 = 100% a year
   source: String!
@@ -52,4 +57,11 @@ type HedgeFill {
   blockNumber: Int!
   timestamp: Int!
   txHash: String!
+}
+
+"A Perpl account whose short hedges a vault: v2's own account, or the operator account that hedged cycle 1."
+type HedgeAccount {
+  id: ID! # Perpl account id
+  owner: String!
+  openedAt: Int!
 }
