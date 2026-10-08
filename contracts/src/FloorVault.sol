@@ -53,9 +53,15 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
 
     uint256 public spreadBps = 1000; // premium = fair value * (1 + 10%)
     uint256 public minPremiumBps = 10; // at least 0.1% of the protected amount
-    uint256 public maxPriceAge = 60; // seconds
+    uint256 public maxPriceAge = 10; // seconds; Perpl's oracle lags the market, so keep this short
     uint256 public maxVolAge = 1 days;
     uint256 public minTimeToExpiry = 60; // stop selling a series in its last minute
+
+    uint256 public settleWindow = 120; // seconds after expiry in which anyone can settle
+    uint256 public maxMarkDeviationBps = 100; // reject buys when oracle and mark disagree by more than 1%
+    uint256 public minPublicTenor = 1 hours; // shorter series can only be bought by allowlisted buyers
+    uint256 public shortTenorSpreadBps = 2000; // extra spread on series shorter than minPublicTenor
+    uint256 public constant EMERGENCY_GRACE = 1 days;
 
     mapping(uint256 => Market) public markets;
     Series[] internal _series;
@@ -63,6 +69,9 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
 
     uint256 public totalLocked; // sum of `locked` over unsettled series
     uint256 public totalOwed; // sum of `owed` over settled series
+
+    mapping(uint256 => uint64) public seriesCreatedAt;
+    mapping(address => bool) public isDemoBuyer;
 
     event MarketSet(uint256 indexed marketId, bool enabled, string symbol);
     event SeriesCreated(uint256 indexed seriesId, uint256 indexed marketId, uint256 strike, uint64 expiry, address token);
@@ -72,6 +81,9 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
     event ParamsSet(uint256 spreadBps, uint256 minPremiumBps, uint256 maxPriceAge, uint256 maxVolAge, uint256 minTimeToExpiry);
     event KeeperSet(address keeper);
     event BuysPaused(bool paused);
+    event GuardsSet(uint256 settleWindow, uint256 maxMarkDeviationBps, uint256 minPublicTenor, uint256 shortTenorSpreadBps);
+    event DemoBuyerSet(address indexed buyer, bool allowed);
+    event SettledLate(uint256 indexed seriesId, address indexed by, bool emergency);
 
     error NotKeeper();
     error MarketDisabled();
@@ -88,6 +100,11 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
     error NotEnoughFreeCollateral(uint256 needed, uint256 free);
     error Paused();
     error ZeroAmount();
+    error PriceDisagreement(uint256 oracle, uint256 mark);
+    error RestrictedSeries();
+    error SettleWindowMissed(uint256 priceTime, uint256 windowEnd);
+    error TooEarlyForEmergency();
+    error StaleValuation();
 
     modifier onlyKeeperOrOwner() {
         if (msg.sender != keeper && msg.sender != owner()) revert NotKeeper();
@@ -104,6 +121,29 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     // ------------------------------------------------------------------ admin
+
+    function setGuards(
+        uint256 settleWindow_,
+        uint256 maxMarkDeviationBps_,
+        uint256 minPublicTenor_,
+        uint256 shortTenorSpreadBps_
+    ) external onlyOwner {
+        require(
+            settleWindow_ >= 30 && settleWindow_ <= 1 hours && maxMarkDeviationBps_ <= 1_000
+                && shortTenorSpreadBps_ <= 10_000,
+            "bounds"
+        );
+        settleWindow = settleWindow_;
+        maxMarkDeviationBps = maxMarkDeviationBps_;
+        minPublicTenor = minPublicTenor_;
+        shortTenorSpreadBps = shortTenorSpreadBps_;
+        emit GuardsSet(settleWindow_, maxMarkDeviationBps_, minPublicTenor_, shortTenorSpreadBps_);
+    }
+
+    function setDemoBuyer(address buyer, bool allowed) external onlyOwner {
+        isDemoBuyer[buyer] = allowed;
+        emit DemoBuyerSet(buyer, allowed);
+    }
 
     function setMarket(uint256 marketId, bool enabled, string calldata symbol) external onlyOwner {
         markets[marketId] = Market(enabled, symbol);
@@ -127,7 +167,7 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
         uint256 maxVolAge_,
         uint256 minTimeToExpiry_
     ) external onlyOwner {
-        require(spreadBps_ <= 10_000 && minPremiumBps_ <= 1_000, "bounds");
+        require(spreadBps_ <= 10_000 && minPremiumBps_ <= 1_000 && maxPriceAge_ >= 1 && maxPriceAge_ <= 300, "bounds");
         spreadBps = spreadBps_;
         minPremiumBps = minPremiumBps_;
         maxPriceAge = maxPriceAge_;
@@ -166,6 +206,7 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
             })
         );
         activeSeries.push(seriesId);
+        seriesCreatedAt[seriesId] = uint64(block.timestamp);
         emit SeriesCreated(seriesId, marketId, strike, expiry, address(token));
     }
 
@@ -175,13 +216,14 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
     function quote(uint256 seriesId, uint256 amount) public view returns (uint256 premium) {
         Series storage s = _get(seriesId);
         if (s.settled || block.timestamp + minTimeToExpiry >= s.expiry) revert SeriesClosed();
-        (uint256 spot,) = _freshPrice(s.marketId);
+        uint256 spot = _checkedSpot(s.marketId);
         (uint256 vol, uint256 volAt) = volFeed.get(s.marketId);
         if (vol == 0 || block.timestamp > volAt + maxVolAge) revert StaleVol(volAt);
 
         uint256 perUnitWad = BlackScholes.put(spot * TO_WAD, s.strike * TO_WAD, s.expiry - block.timestamp, vol);
         uint256 fair = perUnitWad.mulDiv(amount, WAD * TO_WAD, Math.Rounding.Ceil);
-        premium = fair.mulDiv(10_000 + spreadBps, 10_000, Math.Rounding.Ceil);
+        uint256 spread = isShortTenor(seriesId) ? spreadBps + shortTenorSpreadBps : spreadBps;
+        premium = fair.mulDiv(10_000 + spread, 10_000, Math.Rounding.Ceil);
         uint256 floorPremium = s.strike.mulDiv(amount, WAD, Math.Rounding.Ceil).mulDiv(minPremiumBps, 10_000, Math.Rounding.Ceil);
         if (premium < floorPremium) premium = floorPremium;
     }
@@ -194,6 +236,7 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
     {
         if (buysPaused) revert Paused();
         if (amount == 0) revert ZeroAmount();
+        if (isShortTenor(seriesId) && !isDemoBuyer[msg.sender]) revert RestrictedSeries();
         premium = quote(seriesId, amount);
         if (premium > maxPremium) revert PremiumTooHigh(premium, maxPremium);
 
@@ -210,14 +253,34 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
         emit Bought(seriesId, msg.sender, receiver, amount, premium, collateral);
     }
 
-    /// @notice Fix the settlement price of an expired series. Anyone can call it.
+    /// @notice Fix the settlement price of an expired series. Anyone can call it within `settleWindow`
+    /// of expiry, with the oracle price at that moment. After the window only the owner can, so nobody
+    /// can wait for a favourable price and settle then.
     function settle(uint256 seriesId) external nonReentrant {
         Series storage s = _get(seriesId);
         if (s.settled) revert AlreadySettled();
         if (block.timestamp < s.expiry) revert NotExpired();
         (uint256 p, uint256 t) = priceSource.price(s.marketId);
         if (t < s.expiry) revert PriceBeforeExpiry(t, s.expiry);
+        uint256 windowEnd = s.expiry + settleWindow;
+        if (t > windowEnd || block.timestamp > windowEnd) {
+            if (msg.sender != owner()) revert SettleWindowMissed(t, windowEnd);
+            emit SettledLate(seriesId, msg.sender, false);
+        }
+        _settle(seriesId, s, p, t);
+    }
 
+    /// @notice Last resort if the price source stops answering: the owner sets the price a day after
+    /// expiry. Every use is logged on chain. The payout per token can never exceed the locked strike.
+    function emergencySettle(uint256 seriesId, uint256 price6) external onlyOwner nonReentrant {
+        Series storage s = _get(seriesId);
+        if (s.settled) revert AlreadySettled();
+        if (block.timestamp < s.expiry + EMERGENCY_GRACE) revert TooEarlyForEmergency();
+        emit SettledLate(seriesId, msg.sender, true);
+        _settle(seriesId, s, price6, block.timestamp);
+    }
+
+    function _settle(uint256 seriesId, Series storage s, uint256 p, uint256 t) internal {
         uint256 payout = s.strike > p ? s.strike - p : 0;
         uint256 supply = s.token.totalSupply();
         uint256 owed = payout.mulDiv(supply, WAD, Math.Rounding.Ceil);
@@ -250,7 +313,35 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
         emit Redeemed(seriesId, msg.sender, receiver, amount, paid);
     }
 
+    /// @notice True when a series runs for less than `minPublicTenor`: a demo series, allowlisted buyers only.
+    function isShortTenor(uint256 seriesId) public view returns (bool) {
+        Series storage s = _get(seriesId);
+        return s.expiry - seriesCreatedAt[seriesId] < minPublicTenor;
+    }
+
     // ------------------------------------------------------------------ accounting
+
+    /// @notice False when any open series is valued from a stale price or vol. Deposits wait until it is
+    /// fresh again, so nobody can buy shares at the low price a stale input produces.
+    function valuationFresh() public view returns (bool) {
+        uint256 n = activeSeries.length;
+        for (uint256 i; i < n; ++i) {
+            Series storage s = _series[activeSeries[i]];
+            if (s.locked == 0) continue;
+            (uint256 p, uint256 t) = priceSource.price(s.marketId);
+            if (p == 0 || block.timestamp > t + maxPriceAge) return false;
+            if (block.timestamp < s.expiry) {
+                (uint256 vol, uint256 volAt) = volFeed.get(s.marketId);
+                if (vol == 0 || block.timestamp > volAt + maxVolAge) return false;
+            }
+        }
+        return true;
+    }
+
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        if (!valuationFresh()) revert StaleValuation();
+        super._deposit(caller, receiver, assets, shares);
+    }
 
     /// @notice AUSD held by the vault that is neither locked behind protection nor owed to holders.
     function freeAssets() public view returns (uint256) {
@@ -315,9 +406,14 @@ contract FloorVault is ERC4626, Ownable, ReentrancyGuard {
         return _series[seriesId];
     }
 
-    function _freshPrice(uint256 marketId) internal view returns (uint256 p, uint256 t) {
+    /// @dev Oracle price, fresh, and within `maxMarkDeviationBps` of the exchange's live mark.
+    function _checkedSpot(uint256 marketId) internal view returns (uint256 p) {
+        uint256 t;
         (p, t) = priceSource.price(marketId);
         if (p == 0 || block.timestamp > t + maxPriceAge) revert StalePrice(t);
+        (uint256 m,) = priceSource.mark(marketId);
+        uint256 diff = m > p ? m - p : p - m;
+        if (m == 0 || diff * 10_000 > p * maxMarkDeviationBps) revert PriceDisagreement(p, m);
     }
 
     function _seriesValue(Series storage s) internal view returns (uint256) {

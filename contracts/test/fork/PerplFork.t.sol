@@ -54,6 +54,27 @@ contract PerplForkTest is Test {
         AUSD.transfer(to, amt);
     }
 
+    /// Audit H4: the keeper cannot hedge at a price far from Perpl's oracle (no value leak to its own orders).
+    function test_hedgePriceMustStayNearOracle() public {
+        (uint256 spot,) = px.price(MON);
+        vm.prank(keeper);
+        vault.openHedgeAccount(50e6);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSelector(HedgedFloorVault.HedgePriceOutOfBand.selector, spot / 2, spot));
+        vault.hedge(MON, true, 100, spot / 2); // selling at half the oracle price
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSelector(HedgedFloorVault.HedgePriceOutOfBand.selector, spot * 2, spot));
+        vault.hedge(MON, false, 100, spot * 2); // buying back at twice the oracle price
+    }
+
+    /// The live mark price is readable and close to the oracle, so the buy guard works on mainnet data.
+    function test_markIsReadableAndNearOracle() public view {
+        (uint256 p,) = px.price(MON);
+        (uint256 m,) = px.mark(MON);
+        assertGt(m, 0);
+        assertApproxEqRel(m, p, 0.05e18);
+    }
+
     function test_priceSourceReadsPerplOracle() public {
         (uint256 p, uint256 t) = px.price(MON);
         emit log_named_uint("MON price (AUSD 6dp)", p);
@@ -76,7 +97,7 @@ contract PerplForkTest is Test {
 
         vm.startPrank(keeper);
         vault.openHedgeAccount(50e6);
-        vault.hedge(MON, true, 1_000, spot * 50 / 100); // sell 1,000 MON (~$31 at 1x), accept down to half price
+        vault.hedge(MON, true, 1_000, spot * 99 / 100); // sell 1,000 MON (~$31 at 1x), accept down to 1% below oracle
         vm.stopPrank();
 
         assertEq(vault.shortLots(MON), 1_000);
@@ -95,11 +116,11 @@ contract PerplForkTest is Test {
 
         vm.prank(keeper);
         vm.expectRevert();
-        vault.hedge(MON, true, 20_001, spot / 2);
+        vault.hedge(MON, true, 20_001, spot * 99 / 100);
 
         vm.prank(buyer);
         vm.expectRevert(FloorVault.NotKeeper.selector);
-        vault.hedge(MON, true, 100, spot / 2);
+        vault.hedge(MON, true, 100, spot * 99 / 100);
 
         vm.prank(buyer);
         vm.expectRevert(FloorVault.NotKeeper.selector);
@@ -112,7 +133,7 @@ contract PerplForkTest is Test {
         uint256 id = vault.createSeries(MON, spot, uint64(block.timestamp + 1 days));
         _fund(buyer, 1_000e6);
         vm.prank(buyer);
-        vault.buy(id, 30_000e18, 100e6, buyer); // locks ~30,000 * spot
+        vault.buy(id, 500e6 * 1e18 / spot, 100e6, buyer); // locks ~500 AUSD, whatever MON trades at
 
         uint256 free = vault.freeAssets();
         vm.prank(keeper);

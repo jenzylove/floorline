@@ -25,15 +25,40 @@ contract CreReceiverTest is Test {
         vault = new FloorVault(ausd, px, vol, owner);
         rx = new CreReceiver(vol, vault, fwd, owner);
         vm.prank(owner);
-        vol.setUpdater(address(rx), true);
+        vol.setObserver(address(rx), true);
     }
 
-    function test_forwarderWritesVol() public {
+    function test_forwarderRecordsObservedVolOnly() public {
         vm.prank(fwd);
         rx.onReport("", abi.encode(uint8(1), MON, 2.5e18));
-        (uint256 v, uint256 at) = vol.get(MON);
+        (uint256 v, uint256 at) = vol.getObserved(MON);
         assertEq(v, 2.5e18);
         assertEq(at, block.timestamp);
+        // the pricing input is untouched: a report through the (unsigned) simulation forwarder cannot move it
+        (uint256 priced,) = vol.get(MON);
+        assertEq(priced, 0);
+    }
+
+    function test_receiverCannotWritePricingVol() public {
+        vm.prank(address(rx));
+        vm.expectRevert(VolFeed.NotUpdater.selector);
+        vol.update(MON, 0.1e18, "spoof");
+    }
+
+    function test_expectedWorkflowIsChecked() public {
+        address wfOwner = makeAddr("wfOwner");
+        bytes10 name = bytes10("floorline1");
+        vm.prank(owner);
+        rx.setExpectedWorkflow(wfOwner, name);
+
+        bytes memory good = abi.encodePacked(bytes32(uint256(1)), name, wfOwner);
+        vm.prank(fwd);
+        rx.onReport(good, abi.encode(uint8(1), MON, 2e18));
+
+        bytes memory bad = abi.encodePacked(bytes32(uint256(1)), name, makeAddr("stranger"));
+        vm.prank(fwd);
+        vm.expectRevert();
+        rx.onReport(bad, abi.encode(uint8(1), MON, 2e18));
     }
 
     function test_nonForwarderReverts() public {

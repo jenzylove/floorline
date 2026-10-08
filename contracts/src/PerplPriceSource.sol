@@ -17,8 +17,19 @@ contract PerplPriceSource is IPriceSource {
     function price(uint256 marketId) external view returns (uint256 price6, uint256 updatedAt) {
         IPerpl.PerpetualInfo memory info = perpl.getPerpetualInfo(marketId);
         if (info.oraclePNS == 0) revert NoPrice(marketId);
-        uint256 d = info.priceDecimals;
-        price6 = d >= 6 ? info.oraclePNS / 10 ** (d - 6) : info.oraclePNS * 10 ** (6 - d);
+        price6 = _to6(info.oraclePNS, info.priceDecimals);
         updatedAt = info.oracleTimestampSec;
+    }
+
+    /// @notice Perpl's mark price for the market, from its order book, in AUSD 6 decimals.
+    function mark(uint256 marketId) external view returns (uint256 mark6, uint256 updatedAt) {
+        IPerpl.PerpetualInfo memory info = perpl.getPerpetualInfo(marketId);
+        if (info.markPNS == 0) revert NoPrice(marketId);
+        mark6 = _to6(info.markPNS, info.priceDecimals);
+        updatedAt = info.markTimestamp;
+    }
+
+    function _to6(uint256 v, uint256 d) internal pure returns (uint256) {
+        return d >= 6 ? v / 10 ** (d - 6) : v * 10 ** (6 - d);
     }
 }

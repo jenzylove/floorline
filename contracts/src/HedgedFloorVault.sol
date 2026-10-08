@@ -24,6 +24,7 @@ contract HedgedFloorVault is FloorVault {
     IPerpl public immutable perpl;
     uint256 public perplAccountId;
     uint256 public maxNegPnlCollatBps = 300; // Perpl market default; 0 makes taker orders fail
+    uint256 public maxHedgeSlippageBps = 200; // a hedge order may not be worse than 2% from Perpl's oracle
     mapping(uint256 => uint256) public maxHedgeLots; // per market, in Perpl lot units
     uint256[] public hedgedMarkets;
     mapping(uint256 => bool) internal _isHedged;
@@ -37,6 +38,7 @@ contract HedgedFloorVault is FloorVault {
     error NoHedgeAccount();
     error HedgeAccountExists();
     error HedgeCapExceeded(uint256 wanted, uint256 cap);
+    error HedgePriceOutOfBand(uint256 limitPrice, uint256 oracle);
 
     constructor(IERC20 ausd, IPriceSource priceSource_, VolFeed volFeed_, IPerpl perpl_, address owner_)
         FloorVault(ausd, priceSource_, volFeed_, owner_)
@@ -56,6 +58,11 @@ contract HedgedFloorVault is FloorVault {
     function setMaxNegPnlCollatBps(uint256 bps) external onlyOwner {
         require(bps <= 2_000, "bounds");
         maxNegPnlCollatBps = bps;
+    }
+
+    function setMaxHedgeSlippageBps(uint256 bps) external onlyOwner {
+        require(bps >= 10 && bps <= 1_000, "bounds");
+        maxHedgeSlippageBps = bps;
     }
 
     /// @notice Open the vault's Perpl account with `amount` AUSD from free assets.
@@ -94,6 +101,14 @@ contract HedgedFloorVault is FloorVault {
             uint256 wanted = shortLots(marketId) + lots;
             if (wanted > maxHedgeLots[marketId]) revert HedgeCapExceeded(wanted, maxHedgeLots[marketId]);
         }
+        // The keeper picks the limit, so bound it to Perpl's own oracle: selling (open) no lower than
+        // oracle - band, buying back (close) no higher than oracle + band. A keeper cannot move value
+        // out by trading against its own resting orders at a bad price.
+        IPerpl.PerpetualInfo memory info = perpl.getPerpetualInfo(marketId);
+        uint256 oracle = info.oraclePNS;
+        if (oracle == 0 || block.timestamp > info.oracleTimestampSec + maxPriceAge) revert StalePrice(info.oracleTimestampSec);
+        uint256 band = oracle * maxHedgeSlippageBps / 10_000;
+        if (open ? limitPrice < oracle - band : limitPrice > oracle + band) revert HedgePriceOutOfBand(limitPrice, oracle);
         perpl.execOrder(
             IPerpl.OrderDesc({
                 orderDescId: block.number,
