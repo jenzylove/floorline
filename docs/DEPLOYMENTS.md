@@ -23,3 +23,25 @@ Deploy tx hashes: PerplPriceSource `0x3a363906…fefd`, VolFeed `0xb1234813…03
 
 Trusts the CRE **simulation** forwarder for Monad mainnet (`0x9eF6468C5f37b976E57d52054c693269479A784d`): the workflow is simulated, not deployed.
 Authorised as a VolFeed updater. Deploy tx `0x8af139c8…53ed`, setUpdater tx `0x9962d735…060d`.
+
+## v1 retired, 2026-10-08
+
+After the 4 Oct audit: the CRE receiver could write the pricing vol through the CRE simulation forwarder, which
+does not verify signatures (finding C1). On v1: `VolFeed.setUpdater(CreReceiver, false)` `0xb3344882…6a08`,
+`setBuysPaused(true)` `0x8bad8426…0207`, owner's 4.707114 AUSD withdrawn `0xb96ac1d6…6760`.
+
+## Monad mainnet v2, 2026-10-08
+
+Owner `0x1ea5A49DfEda77F014132490e080B458B661b0F7`. Keeper `0xE2084643331b3061BcC2979B8508E5c63C171C6E` (a separate key).
+
+| Contract | Address | Deploy tx |
+|---|---|---|
+| PerplPriceSource | `0x0E21C63a335344Db44938C02170374302e7b0b77` | `0xddad2ac2…d271` |
+| VolFeed | `0x1820045B9a1366d7a8aB8715cf9607f0C3635c6d` | `0x262ef9e9…ef9a` |
+| HedgedFloorVault | `0x2286f16a97e592D2C90C31e3ae56E3F4A9ec5dB4` | `0xaaea9703…baff` |
+| CreReceiver | `0x25541C105A727BFc266509cCdbA1327F2c0a6895` | `0x1af895a0…935b` |
+
+Setup (all status 1): keeper is the only VolFeed updater; CreReceiver is an **observer** (its reports are shown, never
+priced); pricing vol seeded at 255.1533% from the 1 Oct CRE run `0xc826024a…97eb`; MON enabled; params spread 10%,
+premium floor 0.1%, max price age 10 s, max vol age 1 day; hedge cap 5,000 MON; owner allowlisted for short demo
+series. Vault bytecode is 27.4 KB, above Ethereum's 24 KB but within Monad's 128 KB limit.
