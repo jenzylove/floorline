@@ -15,10 +15,13 @@ contracts:
       - event: "Bought(uint256 indexed seriesId, address indexed buyer, address indexed receiver, uint256 amount, uint256 premium, uint256 collateral)"
       - event: "Settled(uint256 indexed seriesId, uint256 price, uint256 priceTime, uint256 payoutPerToken, uint256 owed, uint256 released)"
       - event: "Redeemed(uint256 indexed seriesId, address indexed holder, address indexed receiver, uint256 amount, uint256 paid)"
+      - event: "SettledLate(uint256 indexed seriesId, address indexed by, bool emergency)"
+      - event: "HedgeAccountOpened(uint256 accountId, uint256 amount)"
   - name: VolFeed
     handler: src/EventHandlers.ts
     events:
       - event: "VolUpdated(uint256 indexed marketId, uint256 vol, uint256 updatedAt, bytes32 source)"
+      - event: "VolObserved(uint256 indexed marketId, uint256 vol, uint256 updatedAt, bytes32 source)"
   - name: Perpl
     handler: src/EventHandlers.ts
     events:
@@ -34,8 +37,12 @@ chains:
     start_block: 109621700 # just before the vault deploy
     contracts:
       - name: FloorVault
-        address: "0x85c57FEc4c4861B7D3a99D47C5189de62221a748"
+        address:
+          - "0x85c57FEc4c4861B7D3a99D47C5189de62221a748" # v1, retired 8 Oct
+          - "0x2286f16a97e592D2C90C31e3ae56E3F4A9ec5dB4" # v2
       - name: VolFeed
-        address: "0x57762E9b87b7BB091C1696bc8F55C88694913473"
+        address:
+          - "0x57762E9b87b7BB091C1696bc8F55C88694913473" # v1
+          - "0x1820045B9a1366d7a8aB8715cf9607f0C3635c6d" # v2
       - name: Perpl
         address: "0x34B6552d57a35a1D042CcAe1951BD1C370112a6F"
