@@ -28,6 +28,21 @@ export function loadConfig() {
     apiKey: process.env.PERPL_API_KEY,
     apiPrivateKeyHex: process.env.PERPL_API_KEY_SECRET,
     tradingEnabled: process.env.TRADING_ENABLED === "1",
+    /**
+     * Where hedge orders go.
+     * "vault" (default): the keeper key calls HedgedFloorVault.hedge, so the short sits in the vault's own
+     *   Perpl account and its profit or loss counts for depositors. Perpl's API supplies the market
+     *   configuration, live order book, oracle and candles.
+     * "api": orders go through Perpl's authenticated trading API from the API key's own account.
+     */
+    execution: (process.env.EXECUTION ?? "vault") as "vault" | "api",
+    keeperKey: process.env.KEEPER_PRIVATE_KEY as `0x${string}` | undefined,
+    vol: {
+      /** Post the pricing vol this often. 0 turns it off (another updater posts it). */
+      everyMs: num("VOL_EVERY_MS", 10 * 60_000),
+      candleSeconds: num("VOL_CANDLE_SECONDS", 300),
+      windowHours: num("VOL_WINDOW_HOURS", 24),
+    },
     risk: {
       /** Do nothing while |target - current| is below this share of the target. */
       deadbandPct: num("DEADBAND_PCT", 0.1),
