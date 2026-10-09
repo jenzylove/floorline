@@ -45,3 +45,23 @@ Setup (all status 1): keeper is the only VolFeed updater; CreReceiver is an **ob
 priced); pricing vol seeded at 255.1533% from the 1 Oct CRE run `0xc826024a…97eb`; MON enabled; params spread 10%,
 premium floor 0.1%, max price age 10 s, max vol age 1 day; hedge cap 5,000 MON; owner allowlisted for short demo
 series. Vault bytecode is 27.4 KB, above Ethereum's 24 KB but within Monad's 128 KB limit.
+
+## Monad testnet (chain 10143), 2026-10-09: the Kuru Spot V2 leg
+
+Kuru V2 market creation is owner-only (`deploySpotMarket` from any other address reverts `Unauthorized()`), so Kuru lists
+our market. Same contracts as mainnet, priced from Perpl's testnet MON perp (id 64), no Perpl hedge, testnet AUSD.
+Note: these addresses equal mainnet v1's, because they come from the same deployer at the same nonces. Different chain.
+
+| Contract | Address |
+|---|---|
+| FloorVault | `0x85c57FEc4c4861B7D3a99D47C5189de62221a748` |
+| PerplPriceSource (Perpl testnet `0x1964c32f…80cc`) | `0xDaa5d2b55a7C9e1e59A9cc86cf07b4a94977B5Ba` |
+| VolFeed | `0x57762E9b87b7BB091C1696bc8F55C88694913473` |
+| Series 0 protection token (Kuru base, quote testnet AUSD `0xa9012a05…22dC`) | `0xEb501529D2AB316c8A1bf3Fad965a5612aDe085C` |
+
+Series 0: MON below $0.0222, expires 31 Oct 2026 00:00 UTC, past the end of judging.
+
+## Chainlink CRE on v2, 2026-10-09
+
+Workflow config points at the v2 vault and `CreReceiver` `0x25541C10…6895`, which is a VolFeed observer. Broadcast run
+`0x324fb420…4440`: realised vol 112.03% recorded as observed; the keeper's pricing vol is separate.

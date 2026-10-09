@@ -5,7 +5,7 @@
   "candleSeconds": 300,
   "windowHours": 24,
   "chainName": "monad-mainnet",
-  "vault": "0x85c57FEc4c4861B7D3a99D47C5189de62221a748",
-  "receiver": "0xA211561BfF51b923CcDfEfdadbc9c376238D697c",
+  "vault": "0x2286f16a97e592D2C90C31e3ae56E3F4A9ec5dB4",
+  "receiver": "0x25541C105A727BFc266509cCdbA1327F2c0a6895",
   "gasLimit": "400000"
 }

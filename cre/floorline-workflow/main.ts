@@ -75,7 +75,9 @@ const onCron = (runtime: Runtime<Config>): string => {
   // 1. Volatility input
   const volWad = runtime.runInNodeMode(fetchVol, consensusMedianAggregation())().result();
   runtime.log(`MON realised vol (${cfg.windowHours}h of ${cfg.candleSeconds}s candles, median of nodes): ${Number(volWad) / 1e18}`);
-  runtime.log(`vol report tx: ${sendReport(runtime, selector, ACTION_SET_VOL, BigInt(cfg.perplMarketId), volWad)}`);
+  // Action 1 records the number as *observed* in VolFeed: shown next to the keeper's pricing vol as an
+  // independent cross-check, never used for pricing (the simulation forwarder does not verify signatures).
+  runtime.log(`observed vol report tx: ${sendReport(runtime, selector, ACTION_SET_VOL, BigInt(cfg.perplMarketId), volWad)}`);
 
   // 2. Settlement: find expired, unsettled series and settle them
   const evm = new EVMClient(selector);
@@ -105,7 +107,7 @@ const onCron = (runtime: Runtime<Config>): string => {
     runtime.log(`settle report tx: ${sendReport(runtime, selector, ACTION_SETTLE, id, 0n)}`);
     settled++;
   }
-  return `vol updated, ${ids.length} active series, ${settled} settled`;
+  return `vol observed, ${ids.length} active series, ${settled} settled`;
 };
 
 const initWorkflow = (config: Config) => [handler(new CronCapability().trigger({ schedule: config.schedule }), onCron)];
