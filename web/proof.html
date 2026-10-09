@@ -127,8 +127,10 @@ const MILESTONES = [
   ["CRE", "Chainlink CRE run on v2: observed volatility 112.03%", "0x324fb42045eeb4c9f78c1a61986260a814e10926ed02e9f3b16b3f130e004440"],
   ["Resale", "Floor token resold on a Monday Trade pool: 17.744 tokens for 0.01 AUSD", "0xceb08ec71266efc179e7c722481330ca83e9506c881808f526f666131fa0ed77"],
   ["Pool", "Monday Trade pool for the 7 day floor token, created at the vault's price", "0xed9b305640820cad828f89c9c75ca5552be9e4e805b2500562337c29f4c04814"],
+  ["Kuru", "Testnet: 1,500 protection tokens bought on Kuru's order book at 0.00229 each", "0xdd36ddec456380484620db6abf0eb224551ae555c08b123dc1ee0eab2f5385dd", "testnet"],
 ];
-$("#milestones").innerHTML = MILESTONES.map(([k, what, h]) => `<div class="item"><span class="k">${k}</span><span>${what}</span><a href="${tx(h)}" target="_blank">${short(h)} ↗</a></div>`).join("");
+const link = (h, net) => (net === "testnet" ? `https://testnet.monadscan.com/tx/${h}` : tx(h));
+$("#milestones").innerHTML = MILESTONES.map(([k, what, h, net]) => `<div class="item"><span class="k">${k}</span><span>${what}</span><a href="${link(h, net)}" target="_blank">${short(h)} ↗</a></div>`).join("");
 
 loadHedge().catch((e) => ($("#hedgeLive").innerHTML = `<div class="err">${e.message}</div>`));
 setInterval(() => loadHedge().catch(() => {}), 30000);
