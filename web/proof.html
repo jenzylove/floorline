@@ -3,131 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Floorline proof</title>
-<meta name="description" content="One real Floorline cycle on Monad mainnet, read straight from the chain.">
-<style>
-  :root { --bg:#0e0f0c; --fg:#f2efe6; --muted:#9b978c; --line:#d8ff3d; --bad:#ff7a59; }
-  @media (prefers-color-scheme: light) { :root { --bg:#f4f1e8; --fg:#14140f; --muted:#5f5c53; --line:#3a5a00; --bad:#b3320f; } }
-  * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--fg); font:16px/1.5 ui-sans-serif, system-ui, sans-serif; padding:40px 16px 80px; }
-  main { max-width:760px; margin:0 auto; }
-  h1 { font-size:clamp(36px,8vw,72px); letter-spacing:-0.03em; line-height:1; }
-  h2 { font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:40px 0 8px; font-weight:600; }
-  .floor { height:2px; background:var(--line); margin:24px 0; }
-  p, li { color:var(--muted); }
-  .row { display:grid; grid-template-columns:150px 1fr; gap:4px 16px; padding:10px 0; border-top:1px solid color-mix(in srgb, var(--fg) 14%, transparent); }
-  .row b { font-weight:600; }
-  .val { overflow-wrap:anywhere; }
-  a { color:var(--line); }
-  code { font:13px ui-monospace, monospace; }
-  .bad { color:var(--bad); }
-  @media (max-width:520px) { .row { grid-template-columns:1fr; } }
-</style>
+<title>Floorline · proof</title>
+<meta name="description" content="Every Floorline transaction on Monad mainnet, read live from the Envio indexer: purchases, settlements, hedge fills on Perpl, volatility inputs and the Chainlink CRE cross-check.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0c0a'/><path d='M5 12 L11 9 L16 14 L21 7 L27 11' stroke='%23f2efe6' stroke-width='2' fill='none'/><rect x='5' y='20' width='22' height='2.5' fill='%23d8ff3d'/></svg>">
+<link rel="stylesheet" href="/assets/site.css">
 </head>
 <body>
-<main>
-  <h1>Proof</h1>
-  <div class="floor"></div>
-  <p id="net">Reading the chain…</p>
-  <h2>Vault steps</h2><div id="vault"></div>
-  <h2>Hedge fills on Perpl</h2>
-  <p id="hedgeNote"></p>
-  <div id="hedge"></div>
-  <h2>How to check this yourself</h2>
-  <p>Nothing on this page is typed in by hand except the transaction hashes. Every number is decoded from the logs of those transactions and from Perpl's position events for the hedge account, fetched from the public Monad RPC when you open the page. Open any link and compare.</p>
-</main>
-<script>
-const RPC = "https://rpc.monad.xyz";
-const EXPLORER = "https://monadscan.com/tx/";
-const T = {
-  deposit: "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
-  created: "0x3bba82a94d07a640a1c89514612038dd196069d812936746baf253b6719f0b9d",
-  bought: "0xa101afbd2f2109dcfa253f66e003d0f14243f2f21b3d1c668ef016cd3648ca97",
-  settled: "0xd6bc57af9bdeff672c39eb7ac8725e83883c78f01ea44f6ce017a99e3ef5bb3c",
-  redeemed: "0x9d01c305bd637e3fd85d7abaf4588efdd37000da477a303eaaa4fbc4510213d9",
-  opened: "0x04cc3d2fc73a9dca30eba1d05eca80b1b1216350243580027046f434fed4db18",
-  increased: "0x99a74f70c224396b9ba5fcd5a6e5f480db23e7a25a2b16a8c133ec2efb3e646c",
-  decreased: "0xcd4a9f7ae1cc250eaa0be6bdb30d07efaf0faafb4ff0e76d8fe09a8373e43f85",
-  closed: "0x599b5f439ed4daf1f28ae8638e5439d3982e8001fb26dd8f70021b38672eb26f",
-};
-let id = 0;
-async function rpc(method, params) {
-  const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method, params }) });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message);
-  return j.result;
-}
-const words = (data) => data.slice(2).match(/.{64}/g).map((w) => BigInt("0x" + w));
-const ausd = (n) => "$" + (Number(n) / 1e6).toFixed(4);
-const mon = (n) => (Number(n) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 4 }) + " MON";
-const hex = (n) => "0x" + n.toString(16);
-const el = (id) => document.getElementById(id);
-function row(label, value, hash) {
-  const link = hash ? ` <a href="${EXPLORER + hash}" target="_blank" rel="noopener"><code>${hash.slice(0, 10)}…</code></a>` : "";
-  return `<div class="row"><b>${label}</b><span class="val">${value}${link}</span></div>`;
-}
-async function pool(items, n, fn) {
-  const out = []; let i = 0;
-  await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k]); } }));
-  return out;
-}
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/"><i></i>Floorline</a>
+    <div class="links"><a href="/demo">Try it</a><a href="/proof" class="on">Proof</a><a href="https://github.com/jenzylove/floorline">Code</a></div>
+  </nav>
 
-async function main() {
-  const cfg = await (await fetch("cycle.json", { cache: "no-store" })).json();
-  el("net").textContent = `${cfg.network}. Vault ${cfg.vault}`;
-  const txs = cfg.txs;
-  if (!txs.buy) { el("vault").innerHTML = row("No cycle yet", "A cycle has not been recorded."); el("hedgeNote").textContent = ""; return; }
+  <span class="pill" style="margin-top:28px">Live · Envio indexer on Monad mainnet</span>
+  <h2 style="margin-top:18px">Every transaction, nothing staged.</h2>
+  <p class="lede" style="font-size:19px">Everything below is read now from the indexer and links to the explorer. The milestone list at the bottom is a fixed record of one-off transactions (deployments, the retired v1, the first resale).</p>
 
-  // vault steps: decode the logs of each recorded transaction
-  const rows = []; let boughtBlock = null, lastBlock = null;
-  for (const [name, hash] of Object.entries(txs)) {
-    if (!hash) continue;
-    const rc = await rpc("eth_getTransactionReceipt", [hash]);
-    if (!rc) { rows.push(row(name, '<span class="bad">transaction not found</span>', hash)); continue; }
-    const block = parseInt(rc.blockNumber, 16);
-    lastBlock = Math.max(lastBlock ?? 0, block);
-    if (name === "buy") boughtBlock = block;
-    const mine = rc.logs.filter((l) => l.address.toLowerCase() === cfg.vault.toLowerCase());
-    let text = rc.status === "0x1" ? "ok" : '<span class="bad">reverted</span>';
-    for (const l of mine) {
-      const w = words(l.data);
-      if (l.topics[0] === T.deposit) text = `deposited ${ausd(w[0])} AUSD`;
-      else if (l.topics[0] === T.created) text = `series ${BigInt(l.topics[1])} opened, strike ${ausd(w[0])} per MON, expires ${new Date(Number(w[1]) * 1000).toISOString()}`;
-      else if (l.topics[0] === T.bought) text = `protection on ${mon(w[0])} bought for a ${ausd(w[1])} premium, ${ausd(w[2])} locked`;
-      else if (l.topics[0] === T.settled) text = `settled at ${ausd(w[0])} per MON, payout ${ausd(w[2])} per token, owed ${ausd(w[3])}`;
-      else if (l.topics[0] === T.redeemed) text = `redeemed ${mon(w[0])} of tokens, paid ${ausd(w[1])}`;
-    }
-    rows.push(row(`${name} (block ${block})`, text, hash));
+  <div class="stats" id="stats"></div>
+
+  <div class="hair"></div>
+  <div class="split">
+    <div>
+      <h3>Floors bought, settled and paid</h3>
+      <div class="feed" id="vault"></div>
+    </div>
+    <div>
+      <h3>Volatility input</h3>
+      <p class="mute" style="font-size:15px;margin-top:6px">The keeper posts the pricing number from Perpl's candles, step limited on chain. Chainlink CRE computes the same number on independent nodes and records it as observed only. It never prices a floor.</p>
+      <div style="margin-top:14px" id="vol"></div>
+    </div>
+  </div>
+
+  <div class="hair"></div>
+  <h3>Hedge fills on Perpl</h3>
+  <p class="mute" style="font-size:15px;margin-top:6px">Read from Perpl's own position events for the hedge account (operator account 5374, trading through Perpl's API). After each cycle any hedge profit is owed to the vault; losses stay with the operator.</p>
+  <div style="margin-top:14px" id="hedgeLive"></div>
+  <div class="feed" id="hedge"></div>
+
+  <div class="hair"></div>
+  <h3>Milestones</h3>
+  <div class="feed" id="milestones"></div>
+
+  <footer><span>FLOORLINE · MONAD METROPOLIS 2026</span><span id="src"></span></footer>
+</div>
+
+<script type="module">
+import { $, gql, tx, addr, ADDR, ENVIO, usd, price, pct, ago, client } from "/assets/live.js";
+import { parseAbi } from "https://esm.sh/viem@2.57.2";
+const perplAbi = parseAbi([
+  "function getPosition(uint256,uint256) view returns ((uint256 accountId,uint256 nextNodeId,uint256 prevNodeId,uint8 positionType,uint256 depositCNS,uint256 pricePNS,uint256 lotLNS,uint256 entryBlock,int256 pnlCNS,int256 deltaPnlCNS,int256 premiumPnlCNS),uint256,bool)",
+  "function getAccountById(uint256) view returns ((uint256 accountId,uint256 balanceCNS,uint256 lockedBalanceCNS,uint8 frozen,address accountAddr,(uint256,uint256,uint256,uint256) positions))",
+]);
+const HEDGE_ACCOUNT = 5374n;
+
+const KIND = { deposit: "Deposit", withdraw: "Withdraw", seriesCreated: "New floor", bought: "Bought", settled: "Settled", settledLate: "Settled late", redeemed: "Collected", hedgeAccountOpened: "Hedge account" };
+const v1 = "0x85c57fec4c4861b7d3a99d47c5189de62221a748";
+const short = (h) => `${h.slice(0, 10)}…${h.slice(-4)}`;
+const when = (ts) => ago(ts);
+
+function vaultLine(e) {
+  const tag = e.vault.toLowerCase() === v1 ? ' <span class="mute">(v1)</span>' : "";
+  let what = "";
+  const a = e.amount ? Number(e.amount) : 0;
+  switch (e.kind) {
+    case "deposit": case "withdraw": what = usd(a / 1e6, 4) + " AUSD"; break;
+    case "seriesCreated": what = `floor ${price(Number(e.price) / 1e6)} until ${new Date(Number(e.expiry) * 1000).toUTCString().slice(5, 22)} UTC`; break;
+    case "bought": what = `${(a / 1e18).toLocaleString()} MON protected for ${usd(Number(e.premium) / 1e6, 4)}`; break;
+    case "settled": what = `MON at ${price(Number(e.price) / 1e6)}, pays ${usd(Number(e.payoutPerToken) / 1e6, 5)} per MON`; break;
+    case "redeemed": what = `${(a / 1e18).toLocaleString()} tokens, paid ${usd(Number(e.premium) / 1e6, 4)}`; break;
+    default: what = e.account ?? "";
   }
-  el("vault").innerHTML = rows.join("");
-
-  // hedge fills: Perpl position events for the hedge account over the cycle window
-  if (!cfg.hedgeAccountId) { el("hedgeNote").textContent = "No hedge account recorded for this cycle."; return; }
-  const from = boughtBlock - 20, to = lastBlock + 900; // 900 blocks (~6 min) after the last vault step so the bot's close shows
-  const head = parseInt(await rpc("eth_blockNumber", []), 16);
-  const end = Math.min(to, head);
-  const spans = [];
-  for (let s = from; s <= end; s += 99) spans.push([s, Math.min(s + 98, end)]);
-  el("hedgeNote").textContent = `Scanning ${spans.length} block ranges (blocks ${from} to ${end}) for events of Perpl account ${cfg.hedgeAccountId} on market ${cfg.perpMarketId}…`;
-  const topics = [[T.opened, T.increased, T.decreased, T.closed]];
-  const results = await pool(spans, 6, ([a, b]) => rpc("eth_getLogs", [{ address: cfg.perpl, fromBlock: hex(a), toBlock: hex(b), topics }]));
-  const fills = [];
-  for (const l of results.flat()) {
-    const w = words(l.data);
-    if (w[0] !== BigInt(cfg.perpMarketId) || w[1] !== BigInt(cfg.hedgeAccountId) || w[2] !== 1n) continue; // this market, this account, short side
-    const t = l.topics[0];
-    let text;
-    if (t === T.opened) text = `short opened: ${w[7]} MON at ${(Number(w[6]) / 1e6).toFixed(6)}`;
-    else if (t === T.increased) text = `short increased: ${w[10]} to ${w[11]} MON at ${(Number(w[9]) / 1e6).toFixed(6)}`;
-    else if (t === T.decreased) text = `short reduced: ${w[5]} to ${w[6]} MON, realised PnL ${ausd(w[7] >= 2n ** 255n ? w[7] - 2n ** 256n : w[7])}`;
-    else text = `short closed at ${(Number(w[3]) / 1e6).toFixed(6)}`;
-    fills.push({ block: parseInt(l.blockNumber, 16), html: row(`block ${parseInt(l.blockNumber, 16)}`, text, l.transactionHash) });
-  }
-  fills.sort((x, y) => x.block - y.block);
-  el("hedgeNote").textContent = `Perpl account ${cfg.hedgeAccountId}, market ${cfg.perpMarketId} (MON), short side. Read from Perpl's own events, so this does not depend on the bot's computer.`;
-  el("hedge").innerHTML = fills.length ? fills.map((f) => f.html).join("") : row("No fills found", "No short-side position events for this account in the cycle window.");
+  return `<div class="item"><span class="k">${KIND[e.kind] ?? e.kind}</span><span>series ${e.seriesId ?? "–"} · ${what}${tag} <span class="mute">${when(e.timestamp)}</span></span><a href="${tx(e.txHash)}" target="_blank">${short(e.txHash)} ↗</a></div>`;
 }
-main().catch((e) => { el("net").innerHTML = `<span class="bad">Could not read the chain: ${e.message}</span>`; });
+
+let fills;
+async function loadHedge() {
+  const [[p], a] = await Promise.all([
+    client.readContract({ address: ADDR.perpl, abi: perplAbi, functionName: "getPosition", args: [10n, HEDGE_ACCOUNT] }),
+    client.readContract({ address: ADDR.perpl, abi: perplAbi, functionName: "getAccountById", args: [HEDGE_ACCOUNT] }),
+  ]);
+  const lots = Number(p.lotLNS);
+  const live = lots > 0
+    ? `<b class="lime">short ${lots} MON</b> from ${price(Number(p.pricePNS) / 1e6)}, profit or loss ${usd(Number(p.pnlCNS) / 1e6, 4)}`
+    : `<b>flat</b>, no open short (nothing to hedge right now)`;
+  $("#hedgeLive").innerHTML = `<div class="row"><span>Live position · account 5374 · read from Perpl now</span><span>${live}</span></div><div class="row"><span>Account balance on Perpl</span><span>${usd(Number(a.balanceCNS + a.lockedBalanceCNS) / 1e6, 4)}</span></div>`;
+  if (!fills) fills = await (await fetch("/hedge-fills.json")).json();
+  $("#hedge").innerHTML = fills.fills.slice(0, 40).map((h) => {
+    const before = Number(h.lotsBefore), after = Number(h.lotsAfter);
+    const what = h.kind === "opened" ? `opened short ${after} MON` : h.kind === "closed" ? "closed the short" : `${h.kind} short ${before} → ${after} MON`;
+    const px = h.price ? ` at ${price(Number(h.price) / 1e6)}` : "";
+    return `<div class="item"><span class="k">${h.kind}</span><span>${what}${px} <span class="mute">${new Date(h.timestamp * 1000).toUTCString().slice(5, 22)} UTC</span></span><a href="${tx(h.txHash)}" target="_blank">${short(h.txHash)} ↗</a></div>`;
+  }).join("") + `<div class="mute mono" style="font-size:12px;margin-top:12px">${fills.fills.length} fills exported ${fills.exportedAt} from Perpl's position events. Newer fills show in the live position above.</div>`;
+}
+
+async function load() {
+  const d = await gql(`{
+    VaultEvent(order_by:{blockNumber:desc}, limit: 60){ vault kind seriesId account amount premium price payoutPerToken expiry timestamp txHash }
+    pricing: VolUpdate(where:{kind:{_eq:"pricing"}}, order_by:{blockNumber:desc}, limit: 6){ vol source timestamp txHash }
+    observed: VolUpdate(where:{kind:{_eq:"observed"}}, order_by:{blockNumber:desc}, limit: 6){ vol source timestamp txHash }
+    allVol: VolUpdate(where:{kind:{_eq:"pricing"}}){ id }
+    allVault: VaultEvent { id kind }
+  }`);
+  const bought = d.allVault.filter((x) => x.kind === "bought").length;
+  const settled = d.allVault.filter((x) => x.kind === "settled").length;
+  $("#stats").innerHTML = [
+    ["Vault transactions", d.allVault.length],
+    ["Floors bought", bought],
+    ["Series settled", settled],
+    ["Hedge fills on Perpl", fills ? `${fills.fills.length}+` : "…"],
+    ["Volatility posts", d.allVol.length],
+  ].map(([k, v]) => `<div class="stat"><div class="label">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  $("#vault").innerHTML = d.VaultEvent.map(vaultLine).join("");
+  const volRow = (v, k) => `<div class="row"><span>${k} · ${when(v.timestamp)}</span><span><b class="${k === "observed" ? "" : "lime"}">${pct(Number(v.vol) / 1e18, 1)}</b> <a class="mute" href="${tx(v.txHash)}" target="_blank" style="text-decoration:none">${short(v.txHash)} ↗</a></span></div>`;
+  $("#vol").innerHTML = `<div class="label">Pricing (keeper)</div>${d.pricing.map((v) => volRow(v, "pricing")).join("")}<div class="label" style="margin-top:18px">Observed (Chainlink CRE)</div>${d.observed.map((v) => volRow(v, "observed")).join("") || '<div class="mute">none yet</div>'}`;
+  $("#src").innerHTML = `SOURCE: <a href="${ENVIO}" style="color:inherit">ENVIO GRAPHQL</a> · VAULT <a href="${addr(ADDR.vault)}" style="color:inherit">${ADDR.vault.slice(0, 10)}…</a>`;
+}
+
+const MILESTONES = [
+  ["Deploy", "v2 vault with the audit fixes (8 Oct)", "0xaaea97036dcf5f7f28898d2577e25d31dace62374b1e93c415dcf21a7279baff"],
+  ["Audit fix", "v1: Chainlink CRE receiver removed as a pricing updater", "0xb3344882b1a2afd0e2c5442726780f995cbb179e14ffc8bb9242938e1e536a08"],
+  ["Audit fix", "v1: new floors paused, money moved to v2", "0x8bad8426789613fea483703725b158c48d94f2958682c25222c25274a5910207"],
+  ["CRE", "Chainlink CRE run on v2: observed volatility 112.03%", "0x324fb42045eeb4c9f78c1a61986260a814e10926ed02e9f3b16b3f130e004440"],
+  ["Resale", "Floor token resold on a Monday Trade pool: 17.744 tokens for 0.01 AUSD", "0xceb08ec71266efc179e7c722481330ca83e9506c881808f526f666131fa0ed77"],
+  ["Pool", "Monday Trade pool for the 7 day floor token, created at the vault's price", "0xed9b305640820cad828f89c9c75ca5552be9e4e805b2500562337c29f4c04814"],
+];
+$("#milestones").innerHTML = MILESTONES.map(([k, what, h]) => `<div class="item"><span class="k">${k}</span><span>${what}</span><a href="${tx(h)}" target="_blank">${short(h)} ↗</a></div>`).join("");
+
+loadHedge().catch((e) => ($("#hedgeLive").innerHTML = `<div class="err">${e.message}</div>`));
+setInterval(() => loadHedge().catch(() => {}), 30000);
+load().catch((e) => ($("#stats").innerHTML = `<div class="err">Could not reach the indexer: ${e.message}</div>`));
+setInterval(() => load().catch(() => {}), 30000);
 </script>
 </body>
 </html>

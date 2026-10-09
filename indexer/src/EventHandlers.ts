@@ -4,8 +4,8 @@ import { indexer } from "envio";
  * Perpl accounts that hedge a vault. 5374 is the operator account that hedged cycle 1 (v1). The v2
  * vault's own account is added when the vault emits HedgeAccountOpened, so it needs no configuration.
  */
-const STATIC_HEDGE_ACCOUNTS = new Set((process.env.ENVIO_HEDGE_ACCOUNT_IDS ?? "5374").split(",").map((s) => BigInt(s.trim())));
-const SHORT = 1n;
+// kept for reference: the operator hedge account
+export const STATIC_HEDGE_ACCOUNTS = new Set((process.env.ENVIO_HEDGE_ACCOUNT_IDS ?? "5374").split(",").map((s) => BigInt(s.trim())));
 
 const base = (event: { chainId: number; srcAddress: string; block: { number: number; timestamp: number }; logIndex: number; transaction: { hash: string } }) => ({
   id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
@@ -107,31 +107,6 @@ indexer.onEvent({ contract: "VolFeed", event: "VolObserved" }, async ({ event, c
   context.VolUpdate.set({ ...base(event), feed: event.srcAddress, kind: "observed", marketId: p.marketId, vol: p.vol, source: tag(p.source) });
 });
 
-// Perpl emits position events for every account; keep only hedge accounts' short side.
-type Ctx = { HedgeAccount: { get: (id: string) => Promise<unknown> } };
-const isHedge = async (context: Ctx, accountId: bigint) =>
-  STATIC_HEDGE_ACCOUNTS.has(accountId) || !!(await context.HedgeAccount.get(accountId.toString()));
-
-indexer.onEvent({ contract: "Perpl", event: "PositionOpenedV2" }, async ({ event, context }) => {
-  const p = event.params;
-  if (p.positionType !== SHORT || !(await isHedge(context, p.accountId))) return;
-  context.HedgeFill.set({ ...base(event), accountId: p.accountId, perpId: p.perpId, kind: "opened", lotsBefore: 0n, lotsAfter: p.lotLNS, price: p.pricePNS, realizedPnl: undefined });
-});
-
-indexer.onEvent({ contract: "Perpl", event: "PositionIncreasedV2" }, async ({ event, context }) => {
-  const p = event.params;
-  if (p.positionType !== SHORT || !(await isHedge(context, p.accountId))) return;
-  context.HedgeFill.set({ ...base(event), accountId: p.accountId, perpId: p.perpId, kind: "increased", lotsBefore: p.startLotLNS, lotsAfter: p.endLotLNS, price: p.pricePNS, realizedPnl: undefined });
-});
-
-indexer.onEvent({ contract: "Perpl", event: "PositionDecreased" }, async ({ event, context }) => {
-  const p = event.params;
-  if (p.positionType !== SHORT || !(await isHedge(context, p.accountId))) return;
-  context.HedgeFill.set({ ...base(event), accountId: p.accountId, perpId: p.perpId, kind: "decreased", lotsBefore: p.startLotLNS, lotsAfter: p.endLotLNS, price: undefined, realizedPnl: p.deltaPnlCNS });
-});
-
-indexer.onEvent({ contract: "Perpl", event: "PositionClosed" }, async ({ event, context }) => {
-  const p = event.params;
-  if (p.positionType !== SHORT || !(await isHedge(context, p.accountId))) return;
-  context.HedgeFill.set({ ...base(event), accountId: p.accountId, perpId: p.perpId, kind: "closed", lotsBefore: 0n, lotsAfter: 0n, price: p.pricePNS, realizedPnl: p.deltaPnlCNS });
-});
+// Perpl position events are not indexed: Perpl emits them for every account (about 100k a day), which is
+// far past the hosted plan's limit for a few dozen hedge fills. /proof reads the hedge account's live
+// position straight from Perpl's contract and shows the fill history exported on 9 Oct (web/hedge-fills.json).
