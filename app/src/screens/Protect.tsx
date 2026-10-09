@@ -101,7 +101,7 @@ export function Protect({ account, series, mkt, monHeld, demoBuyer, onDone }: { 
             <Row k="Ends" v={new Date(chosen.expiry * 1000).toLocaleString()} />
             <Row k="Pays up to" v={usd(maxPayout)} />
             {worst !== undefined && <Row k="Most you can lose on this MON" v={usd(worst)} />}
-            <Row k="Backing locked for you" v={`${usd(maxPayout)} AUSD, in the vault`} />
+            <Row k="Locked in the vault for you" v={usd(maxPayout)} />
           </View>
           <Button title={`Protect ${units.toLocaleString()} MON`} onPress={buy} disabled={premium === undefined} busy={busy} />
           <Trail steps={steps} />

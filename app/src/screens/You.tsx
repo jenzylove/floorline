@@ -4,6 +4,7 @@ import { Linking, Pressable, Text, View } from "react-native";
 import type { LocalAccount } from "viem";
 import type { Holding } from "../data";
 import { redeemProtection } from "../tx";
+import { AddMoney } from "./AddMoney";
 import { Big, Body, Button, C, F, Hairline, Label, Row, Trail, price, untilText, usd } from "../ui";
 
 export function You({ account, ausd, mon, held, onDone, onSignOut }: { account: LocalAccount; ausd: number; mon: number; held: Holding[]; onDone: () => void; onSignOut: () => void }) {
@@ -45,6 +46,9 @@ export function You({ account, ausd, mon, held, onDone, onSignOut }: { account: 
         <Text style={{ fontFamily: F.mono, fontSize: 13, color: C.floor }}>{account.address}</Text>
         <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.mute, marginTop: 4 }}>{copied ? "COPIED" : "TAP TO COPY · SEND AUSD AND A LITTLE MON HERE ON MONAD"}</Text>
       </Pressable>
+
+      <Hairline />
+      <AddMoney account={account} onDone={onDone} />
 
       <Hairline />
       <Label>Your protection</Label>

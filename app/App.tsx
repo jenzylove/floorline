@@ -5,6 +5,7 @@ import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { client } from "./src/chain";
 import { ADDR, vaultAbi } from "./src/contracts";
 import { allSeries, holdings, market, vault, wallet, type Holding, type Market, type SeriesView, type VaultView } from "./src/data";
@@ -18,7 +19,16 @@ import { createAccount, describeError, signIn, type Session } from "./src/wallet
 type Tab = "Protect" | "Earn" | "Trade" | "You";
 const TABS: Tab[] = ["Protect", "Earn", "Trade", "You"];
 
-export default function App() {
+export default function Root() {
+  return (
+    <SafeAreaProvider>
+      <App />
+    </SafeAreaProvider>
+  );
+}
+
+function App() {
+  const insets = useSafeAreaInsets();
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_400Regular,
     BricolageGrotesque_600SemiBold,
@@ -85,7 +95,7 @@ export default function App() {
 
   if (!session) {
     return (
-      <View style={s.welcome}>
+      <View style={[s.welcome, { paddingBottom: Math.max(insets.bottom, 12) + 28 }]}>
         <StatusBar style="light" />
         <Big size={64}>Floorline</Big>
         <FloorRule style={{ marginVertical: 22, width: "62%" }} />
@@ -105,7 +115,7 @@ export default function App() {
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={s.page}
+        contentContainerStyle={[s.page, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 120 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -140,7 +150,7 @@ export default function App() {
         )}
         {error && <Text style={s.error}>{error}</Text>}
       </ScrollView>
-      <View style={s.tabs}>
+      <View style={[s.tabs, { paddingBottom: Math.max(insets.bottom, 12) + 10 }]}>
         {TABS.map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} style={s.tab}>
             <Text style={[s.tabText, tab === t && { color: C.floor }]}>{t}</Text>
