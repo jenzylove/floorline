@@ -7,6 +7,9 @@ import { TradingClient, OrderType, Flags } from "./perpl/trading.js";
 import { readExposure } from "./hedge/exposure.js";
 import { decide } from "./hedge/policy.js";
 import { VaultExecutor, withinOracleBand } from "./vault/onchain.js";
+import { CycleLedger } from "./hedge/sweep.js";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
 import { fetchCandles, nextVol, realizedVol, volToWad } from "./vol.js";
 
 const cfg = loadConfig();
@@ -26,10 +29,13 @@ const client = createPublicClient({ transport: http(cfg.rpcUrl) });
 
 // ---------------------------------------------------------------- execution mode
 const vaultMode = cfg.execution === "vault";
-const ex =
-  vaultMode && cfg.vault && cfg.keeperKey && cfg.tradingEnabled
+// The keeper key always posts the pricing vol and settles at expiry (either mode). It only places hedge
+// orders in "vault" mode; in "api" mode orders go through Perpl's trading API from the operator account.
+const keeperTx =
+  cfg.vault && cfg.keeperKey && cfg.tradingEnabled
     ? new VaultExecutor(client as never, cfg.rpcUrl, cfg.chainId, cfg.keeperKey, cfg.vault)
     : undefined;
+const ex = vaultMode ? keeperTx : undefined;
 const apiTrading = !vaultMode && cfg.tradingEnabled && !!cfg.apiKey && !!cfg.apiPrivateKeyHex;
 const tr = apiTrading
   ? new TradingClient(cfg.perplWs, cfg.chainId, cfg.apiKey!, cfg.apiPrivateKeyHex!, (mkt) => markets.get(mkt)?.orderTtlBlocks ?? 20)
@@ -38,13 +44,14 @@ tr?.start();
 log("mode", {
   execution: cfg.execution,
   trading: !!ex || apiTrading,
-  keeper: ex?.address,
+  keeper: keeperTx?.address,
   reason: ex || apiTrading ? "live" : "read-only: needs TRADING_ENABLED=1 plus KEEPER_PRIVATE_KEY (vault) or an API key (api)",
 });
 
 let busy = false;
 let killed = false;
 let lastVolAt = 0;
+const ledgers = new Map<number, CycleLedger>();
 
 process.on("SIGINT", () => {
   killed = true;
@@ -56,6 +63,7 @@ process.on("SIGINT", () => {
 
 /** Post the pricing vol from Perpl's candles, inside VolFeed's step limit. Fails closed: no number, no post. */
 async function postVol(mkt: number) {
+  const ex = keeperTx;
   if (!ex || cfg.vol.everyMs <= 0 || Date.now() - lastVolAt < cfg.vol.everyMs) return;
   lastVolAt = Date.now();
   try {
@@ -79,8 +87,8 @@ async function tick() {
   if (busy || killed) return;
   busy = true;
   try {
-    if (ex && cfg.vault) {
-      const n = await ex.settleExpired();
+    if (keeperTx && cfg.vault) {
+      const n = await keeperTx.settleExpired();
       if (n) log("settled", { count: n });
     }
     for (const mkt of cfg.markets) {
@@ -106,6 +114,20 @@ async function tick() {
       const equity = ex ? await ex.equity() : tr ? Number(tr.balance + tr.locked) / 1e6 : Infinity;
       const allowOpen = equity >= cfg.risk.minEquity;
       const d = decide(spec, cfg.risk, targetUnits, currentLots, state.mark, book.sortedBids(), book.sortedAsks(), allowOpen);
+      if (tr && cfg.vault) {
+        // operator sweep: one line per finished hedge cycle, also written to logs/sweeps.jsonl for /proof
+        const ledger = ledgers.get(mkt) ?? new CycleLedger();
+        ledgers.set(mkt, ledger);
+        const due = ledger.observe(targetUnits, currentLots, equity);
+        if (due) {
+          log("sweep_due", { mkt, vault: cfg.vault, ...due });
+          try {
+            appendFileSync(join(cfg.logDir, "sweeps.jsonl"), JSON.stringify({ mkt, vault: cfg.vault, ...due }) + "\n");
+          } catch {
+            /* logging must never stop the bot */
+          }
+        }
+      }
       log("decision", { mkt, head: md.head, mark: state.mark, oracle: state.oracle, funding: md.funding.get(mkt)?.rate, equity: ex || tr ? equity : "read-only", ...d });
       if (d.kind !== "order") continue;
 
