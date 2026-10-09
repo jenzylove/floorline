@@ -17,7 +17,7 @@ export const ADDR = {
   creReceiver: "0x25541C105A727BFc266509cCdbA1327F2c0a6895",
   perpl: "0x34B6552d57a35a1D042CcAe1951BD1C370112a6F",
 };
-export const ENVIO = "https://indexer.dev.hyperindex.xyz/32d8fa4/v1/graphql";
+export const ENVIO = "https://indexer.dev.hyperindex.xyz/194cebd/v1/graphql";
 export const PERPL_API = "https://app.perpl.xyz/api";
 export const APK = "https://expo.dev/accounts/jdollars-team/projects/floorline/builds";
 export const tx = (h) => `https://monadscan.com/tx/${h}`;
