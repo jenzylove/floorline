@@ -10,7 +10,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.jenzylove.floorline",
       "associatedDomains": [
-        "webcredentials:floorline-app.vercel.app",
         "webcredentials:floorline-app.vercel.app"
       ]
     },
@@ -42,6 +41,9 @@
     "owner": "jdollars-team",
     "updates": {
       "url": "https://u.expo.dev/b214e7d7-9601-4c34-a00d-bdc0e7ad32dc"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
