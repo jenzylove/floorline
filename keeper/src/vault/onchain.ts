@@ -23,7 +23,11 @@ const vaultAbi = parseAbi([
   "function activeSeriesIds() view returns (uint256[])",
   "function getSeries(uint256) view returns ((uint256 marketId, uint256 strike, uint64 expiry, bool settled, address token, uint256 locked, uint256 payoutPerToken, uint256 settlePrice, uint256 owed))",
   "function volFeed() view returns (address)",
+  "function createSeries(uint256 marketId, uint256 strike, uint64 expiry) returns (uint256)",
+  "function seriesCreatedAt(uint256) view returns (uint64)",
+  "function priceSource() view returns (address)",
 ]);
+const pxAbi = parseAbi(["function price(uint256) view returns (uint256 price6, uint256 updatedAt)"]);
 const volAbi = parseAbi([
   "function update(uint256 marketId, uint256 vol, bytes32 source)",
   "function get(uint256) view returns (uint256 vol, uint256 updatedAt)",
@@ -32,7 +36,7 @@ const volAbi = parseAbi([
 
 // Monad's gas estimates can come back too low (a redeem ran out of gas in cycle 1), so every write
 // carries an explicit limit.
-const GAS = { hedge: 1_500_000n, settle: 600_000n, vol: 150_000n };
+const GAS = { hedge: 1_500_000n, settle: 600_000n, vol: 150_000n, create: 2_500_000n };
 
 /**
  * Executes the hedge from the vault's own Perpl account by calling `HedgedFloorVault.hedge`, so
@@ -131,6 +135,38 @@ export class VaultExecutor {
       if (r?.ok) n++;
     }
     return n;
+  }
+
+  /** Open series on a market with their creation time, for the rolling-series check. */
+  async openSeries(marketId: number): Promise<{ strike: number; expiry: number; createdAt: number }[]> {
+    const ids = await this.read<bigint[]>("activeSeriesIds");
+    const out = [];
+    for (const id of ids) {
+      const s = await this.read<{ marketId: bigint; strike: bigint; expiry: bigint; settled: boolean }>("getSeries", [id]);
+      if (Number(s.marketId) !== marketId || s.settled) continue;
+      const createdAt = Number(await this.read<bigint>("seriesCreatedAt", [id]));
+      out.push({ strike: Number(s.strike), expiry: Number(s.expiry), createdAt });
+    }
+    return out;
+  }
+
+  /** The vault's own oracle price for a market, AUSD 6 dp, so strikes are set from the price the vault uses. */
+  async spot6(marketId: number): Promise<number> {
+    const px = await this.read<Address>("priceSource");
+    const [p] = (await this.client.readContract({ address: px, abi: pxAbi, functionName: "price", args: [BigInt(marketId)] })) as [bigint, bigint];
+    return Number(p);
+  }
+
+  createSeries(marketId: number, strike: number, expiry: number) {
+    return this.send("series_tx", {
+      address: this.vault,
+      abi: vaultAbi,
+      functionName: "createSeries",
+      args: [BigInt(marketId), BigInt(strike), BigInt(expiry)],
+      gas: GAS.create,
+      account: this.wallet.account!,
+      chain: this.wallet.chain,
+    });
   }
 
   async volFeed(): Promise<Address> {

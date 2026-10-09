@@ -37,6 +37,9 @@ export function loadConfig() {
      */
     execution: (process.env.EXECUTION ?? "vault") as "vault" | "api",
     keeperKey: process.env.KEEPER_PRIVATE_KEY as `0x${string}` | undefined,
+    /** Standing menu of series the keeper keeps open, e.g. "1d:1.00,1d:0.90,7d:0.90". Empty turns it off. */
+    seriesPlan: process.env.SERIES_PLAN ?? "1d:1.00,1d:0.90,7d:0.90",
+    seriesEveryMs: num("SERIES_EVERY_MS", 5 * 60_000),
     vol: {
       /** Post the pricing vol this often. 0 turns it off (another updater posts it). */
       everyMs: num("VOL_EVERY_MS", 10 * 60_000),

@@ -8,6 +8,7 @@ import { readExposure } from "./hedge/exposure.js";
 import { decide } from "./hedge/policy.js";
 import { VaultExecutor, withinOracleBand } from "./vault/onchain.js";
 import { CycleLedger } from "./hedge/sweep.js";
+import { parsePlan, seriesToCreate } from "./vault/series.js";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { fetchCandles, nextVol, realizedVol, volToWad } from "./vol.js";
@@ -52,6 +53,24 @@ let busy = false;
 let killed = false;
 let lastVolAt = 0;
 const ledgers = new Map<number, CycleLedger>();
+const plan = parsePlan(cfg.seriesPlan);
+let lastSeriesAt = 0;
+
+/** Keep the standing menu of series open so the app always has protection to sell. */
+async function rollSeries(mkt: number) {
+  if (!keeperTx || plan.length === 0 || Date.now() - lastSeriesAt < cfg.seriesEveryMs) return;
+  lastSeriesAt = Date.now();
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const todo = seriesToCreate(plan, await keeperTx.openSeries(mkt), await keeperTx.spot6(mkt), now);
+    for (const t of todo) {
+      log("series_create", { mkt, ...t });
+      await keeperTx.createSeries(mkt, t.strike, t.expiry);
+    }
+  } catch (e) {
+    log("series_error", { mkt, error: String(e).slice(0, 300) });
+  }
+}
 
 process.on("SIGINT", () => {
   killed = true;
@@ -93,6 +112,7 @@ async function tick() {
     }
     for (const mkt of cfg.markets) {
       await postVol(mkt);
+      await rollSeries(mkt);
 
       const spec = markets.get(mkt)!;
       const state = md.states.get(mkt);

@@ -59,3 +59,39 @@ describe("operator sweep ledger", () => {
     expect(l.observe(0, 0, 10)).toBeDefined();
   });
 });
+
+import { parsePlan, seriesToCreate } from "../src/vault/series.js";
+
+describe("rolling series", () => {
+  const plan = parsePlan("1d:1.00,1d:0.90,7d:0.90");
+  const spot = 24_338; // $0.024338
+  const now = 1_791_530_000;
+  it("parses tenors and floors", () => {
+    expect(plan).toEqual([
+      { tenorSec: 86_400, moneyness: 1 },
+      { tenorSec: 86_400, moneyness: 0.9 },
+      { tenorSec: 604_800, moneyness: 0.9 },
+    ]);
+    expect(() => parsePlan("1x:1")).toThrow();
+  });
+  it("creates the whole menu when nothing is open, on a 0.5% strike grid", () => {
+    const todo = seriesToCreate(plan, [], spot, now);
+    expect(todo).toHaveLength(3);
+    expect(todo[0]).toEqual({ strike: 24_278, expiry: now + 86_400 + 60 }); // 199 x 122 grid
+    expect(todo[1].strike % 122).toBe(0);
+  });
+  it("leaves covered entries alone and replaces ones running out", () => {
+    const open = [
+      { strike: 24_400, expiry: now + 80_000, createdAt: now - 6_400 },
+      { strike: 21_900, expiry: now + 10_000, createdAt: now - 76_400 }, // under a third of a day left
+      { strike: 21_960, expiry: now + 500_000, createdAt: now - 104_800 },
+    ];
+    const todo = seriesToCreate(plan, open, spot, now);
+    expect(todo).toHaveLength(1);
+    expect(todo[0].expiry).toBe(now + 86_400 + 60);
+  });
+  it("ignores a 1 hour demo series when looking for daily cover", () => {
+    const todo = seriesToCreate(plan, [{ strike: 24_338, expiry: now + 3_000, createdAt: now - 600 }], spot, now);
+    expect(todo).toHaveLength(3);
+  });
+});
