@@ -9,13 +9,14 @@ import {VolFeed} from "../src/VolFeed.sol";
 import {IPerpl} from "../src/interfaces/IPerpl.sol";
 
 /// Monad testnet copy of Floorline for the Kuru Spot V2 leg: Kuru market creation is owner-only on
-/// V2, so Kuru lists a market for one long-dated series token against testnet AUSD.
-/// Same contracts as mainnet, priced from Perpl's testnet MON market (id 64). No Perpl hedge here.
+/// V2, so Kuru lists a market for one long-dated series token against Kuru testnet USDC (their choice;
+/// the vault takes the same USDC, so protection is bought and traded with one token).
+/// Same contracts as mainnet, priced from Perpl's testnet MON market (id 64). No Perpl hedge here. Collateral is 6-decimal USDC, same as AUSD on mainnet.
 /// Run: forge script script/DeployTestnetKuru.s.sol --rpc-url monad_testnet --broadcast --account fl-owner --password-file <file>
 contract DeployTestnetKuru is Script {
     uint256 constant MON = 64; // Perpl testnet MON perp
     IPerpl constant PERPL = IPerpl(0x1964C32f0bE608E7D29302AFF5E61268E72080cc);
-    IERC20 constant AUSD = IERC20(0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC); // Agora testnet AUSD
+    IERC20 constant USDC = IERC20(0xA402B424f392EAA05DBc8779e4502A1F6A96fEF1); // Kuru testnet USDC, quote of Kuru V2 testnet markets
     uint64 constant EXPIRY = 1793491200; // 31 Oct 2026 00:00 UTC, past the end of judging
 
     function run() external returns (FloorVault vault, PerplPriceSource px, VolFeed vol, uint256 seriesId, address token) {
@@ -23,7 +24,7 @@ contract DeployTestnetKuru is Script {
         address owner = msg.sender;
         px = new PerplPriceSource(PERPL);
         vol = new VolFeed(owner);
-        vault = new FloorVault(AUSD, px, vol, owner);
+        vault = new FloorVault(USDC, px, vol, owner);
         vol.setUpdater(owner, true);
         vol.update(MON, 1.4e18, "perpl-rv-24h-mainnet"); // mainnet's last keeper value, 9 Oct
         vault.setKeeper(owner);

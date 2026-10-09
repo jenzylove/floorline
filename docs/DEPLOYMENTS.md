@@ -49,17 +49,21 @@ series. Vault bytecode is 27.4 KB, above Ethereum's 24 KB but within Monad's 128
 ## Monad testnet (chain 10143), 2026-10-09: the Kuru Spot V2 leg
 
 Kuru V2 market creation is owner-only (`deploySpotMarket` from any other address reverts `Unauthorized()`), so Kuru lists
-our market. Same contracts as mainnet, priced from Perpl's testnet MON perp (id 64), no Perpl hedge, testnet AUSD.
-Note: these addresses equal mainnet v1's, because they come from the same deployer at the same nonces. Different chain.
+our market. Kuru asked for USDC as the quote, so the testnet vault also takes Kuru's testnet USDC
+`0xA402B424f392EAA05DBc8779e4502A1F6A96fEF1` (6 decimals, the quote of every Kuru V2 testnet market): protection is
+bought and traded with one token. Same contracts as mainnet, priced from Perpl's testnet MON perp (id 64), no Perpl hedge.
 
 | Contract | Address |
 |---|---|
-| FloorVault | `0x85c57FEc4c4861B7D3a99D47C5189de62221a748` |
-| PerplPriceSource (Perpl testnet `0x1964c32fâ€¦80cc`) | `0xDaa5d2b55a7C9e1e59A9cc86cf07b4a94977B5Ba` |
-| VolFeed | `0x57762E9b87b7BB091C1696bc8F55C88694913473` |
-| Series 0 protection token (Kuru base, quote testnet AUSD `0xa9012a05â€¦22dC`) | `0xEb501529D2AB316c8A1bf3Fad965a5612aDe085C` |
+| FloorVault | `0xc8EDB9e8E1E0e30951b14FD8BF45f06A9332F894` |
+| PerplPriceSource (Perpl testnet `0x1964c32f…80cc`) | `0x57f7b3b5aEf3dFddAc9EbEB573Bd47D1d467DA09` |
+| VolFeed | `0xD6e877fC3B73305Ab4cBa694De8522e30237af55` |
+| Series 0 protection token (Kuru base) | `0xDE19301578DA357e3D2260c29Dc51cc37621AADd` |
 
-Series 0: MON below $0.0222, expires 31 Oct 2026 00:00 UTC, past the end of judging.
+Series 0: MON below $0.0222, expires 31 Oct 2026 00:00 UTC, past the end of judging. Market params asked of Kuru: same as
+their MONUSDC (price precision 1e6, size precision 1e6, tick 1); expected price 0.0004 to 0.008 USDC, hard bounds 0 to 0.0222.
+
+A first testnet copy on AUSD (vault `0x85c57FEc…a748`, token `0xEb501529…085C`) is superseded by this one.
 
 ## Chainlink CRE on v2, 2026-10-09
 
