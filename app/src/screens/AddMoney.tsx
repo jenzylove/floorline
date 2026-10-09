@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { isAddress, type Address, type LocalAccount } from "viem";
 import { convertToAusd, depositStatus, quoteDeposit, quoteToAusd, sources, statusText, usdcBalance, type Deposit, type Source } from "../aurora";
-import { Big, Body, Button, C, Chips, F, Label, Row, Trail, usd } from "../ui";
+import { Big, Body, Button, C, Chips, F, Label, Row, Segment, Trail, usd } from "../ui";
 
 type Receive = "USDC" | "MON";
 type Mode = "other" | "monad";
@@ -107,7 +107,7 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
   return (
     <View>
       <Label>Add money</Label>
-      <Chips items={["other", "monad"] as Mode[]} value={mode} onChange={setMode} render={(m) => (m === "other" ? "From another chain" : "Already on Monad")} />
+      <Segment items={["other", "monad"] as Mode[]} value={mode} onChange={setMode} render={(m) => (m === "other" ? "From another chain" : "Already on Monad")} />
 
       {mode === "monad" ? (
         <View style={{ marginTop: 14 }}>
@@ -119,17 +119,17 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
               setTimeout(() => setCopied(false), 1500);
             }}
           >
-            <Text style={{ fontFamily: F.mono, fontSize: 14, color: C.floor, marginTop: 12 }}>{account.address}</Text>
+            <Text style={{ fontFamily: F.mono, fontSize: 14, color: C.limeInk, marginTop: 12 }}>{account.address}</Text>
             <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.mute, marginTop: 4 }}>{copied ? "COPIED" : "YOUR MONAD ADDRESS · TAP TO COPY"}</Text>
           </Pressable>
         </View>
       ) : !dep ? (
         <View>
           <Body muted style={{ marginTop: 10 }}>
-            Pay with USDC or USDT on another chain. Aurora Intents gives you a one-time address on that chain, and the money lands in your Monad account in about a minute. Nothing to bridge yourself.
+            Pay with USDC or USDT on another chain. It lands here in about a minute, through Aurora Intents.
           </Body>
           {lowGas && (
-            <Body style={{ marginTop: 10, fontSize: 14, color: C.floor }}>
+            <Body style={{ marginTop: 10, fontSize: 14, color: C.limeInk }}>
               Your account has almost no MON for fees. Start with "MON for fees" (10 MON costs about $0.25), then add USDC.
             </Body>
           )}
@@ -174,7 +174,7 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
       ) : (
         <View style={{ marginTop: 14 }}>
           <Label>Send exactly</Label>
-          <Big size={36} color={C.floor}>
+          <Big size={36} color={C.limeInk}>
             {dep.amountIn} {src?.symbol}
           </Big>
           <Body muted>on {src?.chain}, to this one-time address. It is only for this deposit and expires in an hour. Do not send anything else to it.</Body>
@@ -190,7 +190,7 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
           </Pressable>
           <Row k="You receive on Monad" v={`${dep.amountOut} ${receive}`} />
           <Row k="Usually takes" v={`${dep.timeEstimate} s`} />
-          <Row k="Status" v={statusText[status ?? ""] ?? status ?? "…"} vColor={status === "SUCCESS" ? C.floor : undefined} />
+          <Row k="Status" v={statusText[status ?? ""] ?? status ?? "…"} vColor={status === "SUCCESS" ? C.limeInk : undefined} />
           {destTx && <Row k="Arrival tx" v={`${destTx.slice(0, 10)}…`} />}
           <Button title="Start another" ghost onPress={() => setDep(undefined)} />
         </View>

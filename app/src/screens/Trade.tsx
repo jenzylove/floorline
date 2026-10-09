@@ -3,7 +3,7 @@ import { TextInput, View } from "react-native";
 import type { LocalAccount } from "viem";
 import { perplAccount, perplMinOpen, type Market, type PerplAccount } from "../data";
 import { perplOpenAccount, perplOrder } from "../tx";
-import { Big, Body, Button, C, Chips, F, Hairline, Label, Row, Trail, price, usd } from "../ui";
+import { Big, Body, Button, C, Card, Chips, F, Label, Row, Title, Trail, price, usd } from "../ui";
 
 const SIZES = [100, 500, 1_000, 2_000];
 const LEVERAGE = [1, 2, 5];
@@ -46,13 +46,12 @@ export function Trade({ account, mkt, ausd, onDone }: { account: LocalAccount; m
 
   return (
     <View>
-      <Label>MON perpetual · Perpl</Label>
-      <Big size={52}>{mark ? price(mark) : "…"}</Big>
-      <Body muted style={{ marginTop: 8 }}>
-        Go long or short MON with leverage on Perpl's on-chain order book, from your own account. Every order is signed on this phone.
-      </Body>
-      <Hairline />
-
+      <Title accent="or short.">Trade MON, long</Title>
+      <Body muted style={{ marginTop: 10 }}>On Perpl's on-chain order book, from your own account. Every order is signed with your fingerprint.</Body>
+      <Card style={{ marginTop: 18 }}>
+      <Label>MON perpetual on Perpl</Label>
+      <Big size={44}>{mark ? price(mark) : "…"}</Big>
+      <View style={{ height: 14 }} />
       {acct === undefined ? (
         <Body muted>Reading your Perpl account…</Body>
       ) : acct === null ? (
@@ -67,7 +66,7 @@ export function Trade({ account, mkt, ausd, onDone }: { account: LocalAccount; m
             placeholder={minOpen ? String(minOpen) : "10"}
             placeholderTextColor={C.mute}
             keyboardType="decimal-pad"
-            style={{ fontFamily: F.display, fontSize: 36, color: C.bone, marginTop: 12, borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 }}
+            style={{ fontFamily: F.display, fontSize: 36, color: C.ink, marginTop: 12, borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 }}
           />
           <Row k="In your wallet" v={`${usd(ausd)} AUSD`} />
           <Button
@@ -84,12 +83,12 @@ export function Trade({ account, mkt, ausd, onDone }: { account: LocalAccount; m
           {pos ? (
             <View style={{ marginTop: 10 }}>
               <Label>Open position</Label>
-              <Big size={30} color={pos.pnl >= 0 ? C.floor : C.below}>
+              <Big size={30} color={pos.pnl >= 0 ? C.limeInk : C.below}>
                 {pos.side === "long" ? "Long" : "Short"} {pos.lots.toLocaleString()} MON
               </Big>
               <Row k="Entry" v={price(pos.entry)} />
               <Row k="Margin" v={usd(pos.deposit)} />
-              <Row k="Profit or loss" v={usd(pos.pnl, 4)} vColor={pos.pnl >= 0 ? C.floor : C.below} />
+              <Row k="Profit or loss" v={usd(pos.pnl, 4)} vColor={pos.pnl >= 0 ? C.limeInk : C.below} />
               <Button
                 title={`Close ${pos.side}`}
                 ghost
@@ -116,6 +115,7 @@ export function Trade({ account, mkt, ausd, onDone }: { account: LocalAccount; m
           )}
         </View>
       )}
+      </Card>
       <Trail steps={steps} />
       {err && <Body style={{ color: C.below, marginTop: 8 }}>{err}</Body>}
     </View>

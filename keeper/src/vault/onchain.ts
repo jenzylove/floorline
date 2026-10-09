@@ -36,7 +36,8 @@ const volAbi = parseAbi([
 
 // Monad's gas estimates can come back too low (a redeem ran out of gas in cycle 1), so every write
 // carries an explicit limit.
-const GAS = { hedge: 1_500_000n, settle: 600_000n, vol: 150_000n, create: 2_500_000n };
+// Sized from eth_estimateGas plus headroom: createSeries ~731k, a vol update ~60k.
+const GAS = { hedge: 1_500_000n, settle: 400_000n, vol: 90_000n, create: 1_000_000n };
 
 /**
  * Executes the hedge from the vault's own Perpl account by calling `HedgedFloorVault.hedge`, so

@@ -1,24 +1,28 @@
 import { useState } from "react";
-import { TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import type { LocalAccount } from "viem";
 import type { VaultView } from "../data";
 import { depositEarn, withdrawEarn } from "../tx";
-import { Big, Body, Button, C, F, Hairline, Label, Row, Trail, usd } from "../ui";
+import { Big, Body, Button, C, Card, F, Label, Row, Segment, Title, Trail, usd } from "../ui";
 
+/** Earn: one number (what your deposit is worth), put money in or take it out. The vault's insides are one tap away. */
 export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: VaultView; ausd: number; onDone: () => void }) {
+  const [mode, setMode] = useState<"in" | "out">("in");
   const [amt, setAmt] = useState("");
   const [steps, setSteps] = useState<{ label: string; hash?: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
+  const [how, setHow] = useState(false);
   const n = Number(amt);
+  const max = mode === "in" ? ausd : (v?.myMaxWithdraw ?? 0);
 
-  async function run(kind: "deposit" | "withdraw") {
+  async function run() {
     setBusy(true);
     setErr(undefined);
     setSteps([]);
     const step = (label: string, hash?: string) => setSteps((st) => (hash ? st.map((x) => (x.label === label && !x.hash ? { label, hash } : x)) : [...st, { label }]));
     try {
-      if (kind === "deposit") await depositEarn(account, n, step);
+      if (mode === "in") await depositEarn(account, n, step);
       else await withdrawEarn(account, n, step);
       setAmt("");
       onDone();
@@ -31,47 +35,50 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
 
   return (
     <View>
-      <Label>Earn by backing protection</Label>
-      <Big size={34} style={{ marginTop: 6 }}>Put in AUSD. Every floor someone buys pays you.</Big>
-      <Body muted style={{ marginTop: 12 }}>
-        Your AUSD backs the protection the vault sells and earns the premiums. Every floor sold is fully backed: the money it could pay out is locked the moment it is bought. The vault also hedges on Perpl. When MON falls hard, payouts come out of the vault, so you can lose part of what you put in.
-      </Body>
+      <Title accent="pay you.">Let the floors people buy</Title>
+      <Body muted style={{ marginTop: 10 }}>Put in AUSD. It backs the floors people buy, and you keep what they pay.</Body>
 
-      <Hairline />
-      <Label>Your deposit</Label>
-      <Big size={48} color={C.floor}>{v ? usd(v.myValue) : "…"}</Big>
-      <Row k="In your wallet" v={`${usd(ausd)} AUSD`} />
-      <Row k="You can take out now" v={v ? usd(v.myMaxWithdraw) : "…"} />
+      <Card style={{ marginTop: 20 }}>
+        <Label>Your deposit is worth</Label>
+        <Big size={46} style={{ marginTop: 2 }}>{v ? usd(v.myValue) : "…"}</Big>
+        <Segment items={["in", "out"]} value={mode} onChange={(m) => { setMode(m); setAmt(""); }} render={(m) => (m === "in" ? "Put in" : "Take out")} />
+        <TextInput
+          value={amt}
+          onChangeText={setAmt}
+          placeholder="0.00"
+          placeholderTextColor={C.mute}
+          keyboardType="decimal-pad"
+          style={{ fontFamily: F.display, fontSize: 40, color: C.ink, marginTop: 14 }}
+        />
+        <Pressable onPress={() => setAmt(String(Math.floor(max * 100) / 100))}>
+          <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.mute }}>
+            {mode === "in" ? `${usd(ausd)} AUSD in your account` : `${usd(max)} you can take out now`} · <Text style={{ color: C.ink, textDecorationLine: "underline" }}>use all</Text>
+          </Text>
+        </Pressable>
+        <Button title={mode === "in" ? "Put in" : "Take out"} onPress={run} disabled={!(n > 0 && n <= max + 1e-9)} busy={busy} />
+        <Trail steps={steps} />
+        {err && <Body style={{ color: C.below, marginTop: 8 }}>{err}</Body>}
+      </Card>
 
-      <TextInput
-        value={amt}
-        onChangeText={setAmt}
-        placeholder="0.00"
-        placeholderTextColor={C.mute}
-        keyboardType="decimal-pad"
-        style={{ fontFamily: F.display, fontSize: 40, color: C.bone, marginTop: 16, borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 }}
-      />
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Button title="Deposit" onPress={() => run("deposit")} disabled={!(n > 0 && n <= ausd)} busy={busy} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button title="Withdraw" ghost onPress={() => run("withdraw")} disabled={!(n > 0 && v && n <= v.myMaxWithdraw)} busy={busy} />
-        </View>
-      </View>
-      <Trail steps={steps} />
-      {err && <Body style={{ color: C.below, marginTop: 8 }}>{err}</Body>}
+      <Card tint="below" style={{ marginTop: 14 }}>
+        <Text style={{ fontFamily: F.semi, fontSize: 16, color: C.ink }}>The risk, plainly</Text>
+        <Body style={{ marginTop: 4, fontSize: 14 }}>
+          When MON falls hard, floors pay out from the vault, so your deposit can lose value. The vault also hedges on Perpl, which softens that but does not remove it.
+        </Body>
+      </Card>
 
-      <Hairline />
-      <Label>The vault, live</Label>
-      {v && (
+      <Pressable onPress={() => setHow(!how)} style={{ marginTop: 18 }}>
+        <Text style={{ fontFamily: F.semi, fontSize: 16, color: C.ink }}>{how ? "Hide how it works" : "How the vault works →"}</Text>
+      </Pressable>
+      {how && v && (
         <View style={{ marginTop: 8 }}>
           <Row k="Owned by depositors" v={usd(v.totalAssets)} />
-          <Row k="Locked behind protection" v={usd(v.locked)} />
-          <Row k="Value of open protection" v={usd(v.liability)} />
-          <Row k="Owed to holders, not yet collected" v={usd(v.owed)} />
-          <Row k="Free to back new protection" v={usd(v.free)} />
-          <Row k="Selling" v={v.paused ? "paused" : "open"} vColor={v.paused ? C.below : C.floor} />
+          <Row k="Locked behind floors" v={usd(v.locked)} />
+          <Row k="Value of open floors" v={usd(v.liability)} />
+          <Row k="Owed to holders, not collected" v={usd(v.owed)} />
+          <Row k="Free to back new floors" v={usd(v.free)} />
+          <Row k="Selling floors" v={v.paused ? "paused" : "open"} vColor={v.paused ? C.below : C.limeInk} />
+          <Body muted style={{ fontSize: 13, marginTop: 6 }}>Every floor sold has its full payout locked the moment it is bought. You can only take out what is not locked.</Body>
         </View>
       )}
     </View>
