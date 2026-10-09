@@ -35,20 +35,9 @@ export function You({ account, ausd, mon, held, onDone, onSignOut }: { account: 
       <Label>Your account · passkey, no seed phrase</Label>
       <Big size={48} style={{ marginTop: 6 }}>{usd(ausd)}</Big>
       <Body muted>AUSD · {mon.toFixed(4)} MON for fees</Body>
-      <Pressable
-        onPress={async () => {
-          await Clipboard.setStringAsync(account.address);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        }}
-        style={{ marginTop: 14 }}
-      >
-        <Text style={{ fontFamily: F.mono, fontSize: 13, color: C.floor }}>{account.address}</Text>
-        <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.mute, marginTop: 4 }}>{copied ? "COPIED" : "TAP TO COPY · SEND AUSD AND A LITTLE MON HERE ON MONAD"}</Text>
-      </Pressable>
 
       <Hairline />
-      <AddMoney account={account} onDone={onDone} />
+      <AddMoney account={account} mon={mon} onDone={onDone} />
 
       <Hairline />
       <Label>Your protection</Label>

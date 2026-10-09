@@ -6,13 +6,16 @@ import { convertToAusd, depositStatus, quoteDeposit, quoteToAusd, sources, statu
 import { Big, Body, Button, C, Chips, F, Label, Row, Trail, usd } from "../ui";
 
 type Receive = "USDC" | "MON";
+type Mode = "other" | "monad";
 
 /** Add money from another chain with Aurora Intents. Lands on Monad in the passkey account. */
-export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: () => void }) {
+export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon: number; onDone: () => void }) {
+  const [mode, setMode] = useState<Mode>("other");
+  const lowGas = mon < 0.5;
   const [list, setList] = useState<Source[]>([]);
   const [chain, setChain] = useState<string>();
   const [symbol, setSymbol] = useState("USDC");
-  const [receive, setReceive] = useState<Receive>("USDC");
+  const [receive, setReceive] = useState<Receive>(mon < 0.5 ? "MON" : "USDC");
   const [amount, setAmount] = useState("5");
   const [refund, setRefund] = useState("");
   const [dep, setDep] = useState<Deposit>();
@@ -103,12 +106,37 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
 
   return (
     <View>
-      <Label>Add money from any chain · Aurora Intents</Label>
-      <Body muted style={{ marginTop: 6 }}>
-        Pay with USDC or USDT from another chain. It lands in this account on Monad in about a minute. Nothing to bridge yourself.
-      </Body>
+      <Label>Add money</Label>
+      <Chips items={["other", "monad"] as Mode[]} value={mode} onChange={setMode} render={(m) => (m === "other" ? "From another chain" : "Already on Monad")} />
 
-      {!dep ? (
+      {mode === "monad" ? (
+        <View style={{ marginTop: 14 }}>
+          <Body muted>Send AUSD, USDC or MON on Monad to your account address. Only Monad: other chains go through "From another chain".</Body>
+          <Pressable
+            onPress={async () => {
+              await Clipboard.setStringAsync(account.address);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+          >
+            <Text style={{ fontFamily: F.mono, fontSize: 14, color: C.floor, marginTop: 12 }}>{account.address}</Text>
+            <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.mute, marginTop: 4 }}>{copied ? "COPIED" : "YOUR MONAD ADDRESS · TAP TO COPY"}</Text>
+          </Pressable>
+        </View>
+      ) : !dep ? (
+        <View>
+          <Body muted style={{ marginTop: 10 }}>
+            Pay with USDC or USDT on another chain. Aurora Intents gives you a one-time address on that chain, and the money lands in your Monad account in about a minute. Nothing to bridge yourself.
+          </Body>
+          {lowGas && (
+            <Body style={{ marginTop: 10, fontSize: 14, color: C.floor }}>
+              Your account has almost no MON for fees. Start with "MON for fees" (10 MON costs about $0.25), then add USDC.
+            </Body>
+          )}
+        </View>
+      ) : null}
+
+      {mode === "monad" ? null : !dep ? (
         <View>
           <Label style={{ marginTop: 16 }}>Pay from</Label>
           {chain ? (
@@ -149,7 +177,7 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
           <Big size={36} color={C.floor}>
             {dep.amountIn} {src?.symbol}
           </Big>
-          <Body muted>on {src?.chain}, to this one-time address:</Body>
+          <Body muted>on {src?.chain}, to this one-time address. It is only for this deposit and expires in an hour. Do not send anything else to it.</Body>
           <Pressable
             onPress={async () => {
               await Clipboard.setStringAsync(dep.depositAddress);
@@ -158,7 +186,7 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
             }}
           >
             <Text style={{ fontFamily: F.mono, fontSize: 13, color: C.bone, marginTop: 8 }}>{dep.depositAddress}</Text>
-            <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.mute, marginTop: 4 }}>{copied ? "COPIED" : "TAP TO COPY"}</Text>
+            <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.mute, marginTop: 4 }}>{copied ? "COPIED" : `ONE-TIME ADDRESS ON ${(src?.chain ?? "").toUpperCase()} · TAP TO COPY`}</Text>
           </Pressable>
           <Row k="You receive on Monad" v={`${dep.amountOut} ${receive}`} />
           <Row k="Usually takes" v={`${dep.timeEstimate} s`} />
@@ -168,9 +196,9 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
         </View>
       )}
 
-      {usdc >= 0.1 && (
+      {usdc >= 0.1 && mode === "other" && (
         <View style={{ marginTop: 18 }}>
-          <Label>USDC in this account</Label>
+          <Label>USDC arrived · one more tap</Label>
           <Big size={30}>{usd(usdc)}</Big>
           {conv && <Row k="Converts to" v={`${usd(conv.ausd, 4)} AUSD via ${conv.via}`} />}
           <Button title="Convert to AUSD" onPress={convert} busy={busy} />
