@@ -10,6 +10,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.jenzylove.floorline",
       "associatedDomains": [
+        "webcredentials:floorline-app.vercel.app",
         "webcredentials:floorline-app.vercel.app"
       ]
     },
@@ -21,7 +22,10 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.jenzylove.floorline"
+      "package": "com.jenzylove.floorline",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,6 +39,9 @@
         "projectId": "b214e7d7-9601-4c34-a00d-bdc0e7ad32dc"
       }
     },
-    "owner": "jdollars-team"
+    "owner": "jdollars-team",
+    "updates": {
+      "url": "https://u.expo.dev/b214e7d7-9601-4c34-a00d-bdc0e7ad32dc"
+    }
   }
 }
