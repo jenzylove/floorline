@@ -4,15 +4,21 @@
   "main": "index.ts",
   "dependencies": {
     "@category-labs/mera": "^0.2.0",
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^2.4.0",
     "expo": "~57.0.26",
+    "expo-clipboard": "~57.0.2",
     "expo-crypto": "~57.0.3",
+    "expo-font": "~57.0.4",
+    "expo-linking": "~57.0.12",
     "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-passkey": "3.6.1",
+    "react-native-svg": "15.15.4",
     "viem": "^2.57.2"
   },
   "devDependencies": {

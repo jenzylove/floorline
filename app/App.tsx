@@ -1,27 +1,79 @@
 import "./src/polyfills";
+import { BricolageGrotesque_400Regular, BricolageGrotesque_600SemiBold, BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque";
+import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
+import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { verifyMessage } from "viem";
-import { balances } from "./src/chain";
-import { createAccount, describeError, RP_ID, signIn, type Session } from "./src/wallet";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { client } from "./src/chain";
+import { ADDR, vaultAbi } from "./src/contracts";
+import { allSeries, holdings, market, vault, wallet, type Holding, type Market, type SeriesView, type VaultView } from "./src/data";
+import { Earn } from "./src/screens/Earn";
+import { Protect } from "./src/screens/Protect";
+import { Trade } from "./src/screens/Trade";
+import { You } from "./src/screens/You";
+import { Big, Body, Button, C, F, FloorRule, Label } from "./src/ui";
+import { createAccount, describeError, signIn, type Session } from "./src/wallet";
 
-/** Spike screen: prove a Mera passkey account works on this phone. Every value shown is read live. */
+type Tab = "Protect" | "Earn" | "Trade" | "You";
+const TABS: Tab[] = ["Protect", "Earn", "Trade", "You"];
+
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    BricolageGrotesque_400Regular,
+    BricolageGrotesque_600SemiBold,
+    BricolageGrotesque_800ExtraBold,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
+  });
   const [session, setSession] = useState<Session>();
-  const [bal, setBal] = useState<{ mon: string; ausd: string }>();
-  const [sig, setSig] = useState<string>();
+  const [tab, setTab] = useState<Tab>("Protect");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
-  async function run(fn: () => Promise<Session>) {
+  const [mkt, setMkt] = useState<Market>();
+  const [series, setSeries] = useState<SeriesView[]>([]);
+  const [v, setV] = useState<VaultView>();
+  const [bal, setBal] = useState({ ausd: 0, mon: 0 });
+  const [held, setHeld] = useState<Holding[]>([]);
+  const [demoBuyer, setDemoBuyer] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = useCallback(async () => {
+    if (!session) return;
+    const me = session.account.address;
+    try {
+      const [m, s, vv, b, demo] = await Promise.all([
+        market(),
+        allSeries(),
+        vault(me),
+        wallet(me),
+        client.readContract({ address: ADDR.vault, abi: vaultAbi, functionName: "isDemoBuyer", args: [me] }),
+      ]);
+      setMkt(m);
+      setSeries(s);
+      setV(vv);
+      setBal(b);
+      setDemoBuyer(demo);
+      setHeld(await holdings(me, s));
+    } catch (e) {
+      setError(describeError(e));
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    refresh();
+    const t = setInterval(refresh, 15_000);
+    return () => clearInterval(t);
+  }, [session, refresh]);
+
+  async function enter(fn: () => Promise<Session>) {
     setBusy(true);
     setError(undefined);
     try {
       session?.end();
-      const s = await fn();
-      setSession(s);
-      setBal(await balances(s.account.address));
+      setSession(await fn());
     } catch (e) {
       setError(describeError(e));
     } finally {
@@ -29,67 +81,94 @@ export default function App() {
     }
   }
 
-  async function signTest() {
-    if (!session) return;
-    setBusy(true);
-    try {
-      const message = `Floorline passkey test ${new Date().toISOString()}`;
-      const signature = await session.account.signMessage({ message });
-      const ok = await verifyMessage({ address: session.account.address, message, signature });
-      setSig(`${ok ? "verified" : "NOT verified"}: ${signature.slice(0, 18)}…`);
-    } catch (e) {
-      setError(describeError(e));
-    } finally {
-      setBusy(false);
-    }
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: C.ink }} />;
+
+  if (!session) {
+    return (
+      <View style={s.welcome}>
+        <StatusBar style="light" />
+        <Big size={64}>Floorline</Big>
+        <FloorRule style={{ marginVertical: 22, width: "62%" }} />
+        <Body style={{ fontSize: 19, lineHeight: 27 }}>Protect your MON without selling it. Pay once, set a floor, keep the upside.</Body>
+        <Body muted style={{ marginTop: 12 }}>Your account is a passkey on this phone. No seed phrase, no extension.</Body>
+        <View style={{ flex: 1 }} />
+        <Button title="Create account" onPress={() => enter(createAccount)} busy={busy} />
+        <Button title="I already have one" ghost onPress={() => enter(signIn)} busy={busy} />
+        {error && <Text style={s.error}>{error}</Text>}
+        <Label style={{ marginTop: 18, textAlign: "center" }}>Live on Monad mainnet</Label>
+      </View>
+    );
   }
 
+  const tabProps = { account: session.account, onDone: refresh };
   return (
-    <ScrollView contentContainerStyle={s.page}>
+    <View style={{ flex: 1, backgroundColor: C.ink }}>
       <StatusBar style="light" />
-      <Text style={s.h1}>Floorline</Text>
-      <View style={s.floor} />
-      <Text style={s.muted}>Mera passkey spike. Passkey domain: {RP_ID}</Text>
-
-      <Pressable style={s.btn} disabled={busy} onPress={() => run(createAccount)}>
-        <Text style={s.btnText}>Create account with passkey</Text>
-      </Pressable>
-      <Pressable style={[s.btn, s.btn2]} disabled={busy} onPress={() => run(signIn)}>
-        <Text style={s.btnText2}>Sign in with passkey</Text>
-      </Pressable>
-      {busy && <ActivityIndicator color="#d8ff3d" style={{ marginTop: 16 }} />}
-
-      {session && (
-        <View style={s.card}>
-          <Text style={s.label}>Address (Monad mainnet)</Text>
-          <Text style={s.value} selectable>{session.account.address}</Text>
-          <Text style={s.label}>AUSD</Text>
-          <Text style={s.big}>{bal ? bal.ausd : "…"}</Text>
-          <Text style={s.label}>MON</Text>
-          <Text style={s.value}>{bal ? bal.mon : "…"}</Text>
-          <Pressable style={[s.btn, s.btn2]} disabled={busy} onPress={signTest}>
-            <Text style={s.btnText2}>Sign a test message</Text>
+      <ScrollView
+        contentContainerStyle={s.page}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            tintColor={C.floor}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await refresh();
+              setRefreshing(false);
+            }}
+          />
+        }
+      >
+        {!mkt ? (
+          <ActivityIndicator color={C.floor} style={{ marginTop: 80 }} />
+        ) : tab === "Protect" ? (
+          <Protect {...tabProps} series={series} mkt={mkt} monHeld={bal.mon} demoBuyer={demoBuyer} />
+        ) : tab === "Earn" ? (
+          <Earn {...tabProps} v={v} ausd={bal.ausd} />
+        ) : tab === "Trade" ? (
+          <Trade {...tabProps} mkt={mkt} ausd={bal.ausd} />
+        ) : (
+          <You
+            {...tabProps}
+            ausd={bal.ausd}
+            mon={bal.mon}
+            held={held}
+            onSignOut={() => {
+              session.end();
+              setSession(undefined);
+            }}
+          />
+        )}
+        {error && <Text style={s.error}>{error}</Text>}
+      </ScrollView>
+      <View style={s.tabs}>
+        {TABS.map((t) => (
+          <Pressable key={t} onPress={() => setTab(t)} style={s.tab}>
+            <Text style={[s.tabText, tab === t && { color: C.floor }]}>{t}</Text>
+            <View style={[s.tabMark, tab === t && { backgroundColor: C.floor }]} />
           </Pressable>
-          {sig && <Text style={s.value}>{sig}</Text>}
-        </View>
-      )}
-      {error && <Text style={s.error}>{error}</Text>}
-    </ScrollView>
+        ))}
+      </View>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  page: { flexGrow: 1, backgroundColor: "#0e0f0c", padding: 24, paddingTop: 72 },
-  h1: { color: "#f2efe6", fontSize: 48, fontWeight: "700", letterSpacing: -1 },
-  floor: { height: 2, backgroundColor: "#d8ff3d", marginVertical: 20 },
-  muted: { color: "#9b978c", fontSize: 14, marginBottom: 24 },
-  btn: { backgroundColor: "#d8ff3d", paddingVertical: 16, borderRadius: 14, alignItems: "center", marginTop: 12 },
-  btn2: { backgroundColor: "transparent", borderWidth: 1, borderColor: "#d8ff3d" },
-  btnText: { color: "#0e0f0c", fontWeight: "700", fontSize: 16 },
-  btnText2: { color: "#d8ff3d", fontWeight: "700", fontSize: 16 },
-  card: { marginTop: 28 },
-  label: { color: "#9b978c", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, marginTop: 16 },
-  value: { color: "#f2efe6", fontSize: 15, marginTop: 4 },
-  big: { color: "#f2efe6", fontSize: 40, fontWeight: "700", marginTop: 4 },
-  error: { color: "#ff7a59", marginTop: 20, fontSize: 14 },
+  welcome: { flex: 1, backgroundColor: C.ink, padding: 24, paddingTop: 96, paddingBottom: 40 },
+  page: { padding: 24, paddingTop: 64, paddingBottom: 120 },
+  error: { color: C.below, marginTop: 16, fontFamily: F.mono, fontSize: 12 },
+  tabs: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+    backgroundColor: C.ink,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.line,
+    paddingBottom: 22,
+    paddingTop: 12,
+  },
+  tab: { flex: 1, alignItems: "center" },
+  tabText: { fontFamily: F.mono, fontSize: 12, color: C.mute, letterSpacing: 1.2, textTransform: "uppercase" },
+  tabMark: { height: 2, width: 22, marginTop: 6, backgroundColor: "transparent" },
 });
