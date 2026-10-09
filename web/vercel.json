@@ -1,5 +1,9 @@
 {
   "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/1click/:path*", "destination": "https://1click.chaindefuser.com/v0/:path*" },
+    { "source": "/api/kyber/:path*", "destination": "https://aggregator-api.kyberswap.com/monad/api/v1/:path*" }
+  ],
   "headers": [
     { "source": "/.well-known/(.*)", "headers": [{ "key": "Content-Type", "value": "application/json" }] }
   ]

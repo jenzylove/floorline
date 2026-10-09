@@ -8,8 +8,10 @@ import { ADDR, erc20Abi } from "./contracts";
  * land in their passkey account on Monad. 1Click delivers USDC or MON on Monad (not AUSD), so a second
  * step converts USDC to AUSD on Monad through KyberSwap's router.
  */
-const ONECLICK = "https://1click.chaindefuser.com/v0";
-const KYBER = "https://aggregator-api.kyberswap.com/monad/api/v1";
+// Both go through floorline-app.vercel.app, which forwards to 1click.chaindefuser.com and KyberSwap.
+// Some mobile networks cannot resolve chaindefuser.com; the app's own domain always resolves.
+const ONECLICK = "https://floorline-app.vercel.app/api/1click";
+const KYBER = "https://floorline-app.vercel.app/api/kyber";
 const CLIENT_ID = "floorline";
 
 export const MONAD_USDC = "0x754704bc059f8c67012fed69bc8a327a5aafb603" as const;

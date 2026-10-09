@@ -25,13 +25,18 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
   const [err, setErr] = useState<string>();
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
+  const [loadErr, setLoadErr] = useState<string>();
+  const loadSources = () => {
+    setLoadErr(undefined);
     sources()
       .then((l) => {
         setList(l);
         setChain(l.find((x) => x.chain === "Base")?.chain ?? l[0]?.chain);
       })
-      .catch((e) => setErr(String(e)));
+      .catch((e) => setLoadErr(e instanceof Error ? e.message : String(e)));
+  };
+  useEffect(() => {
+    loadSources();
     usdcBalance(account.address).then(setUsdc).catch(() => undefined);
   }, [account.address]);
 
@@ -106,7 +111,16 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
       {!dep ? (
         <View>
           <Label style={{ marginTop: 16 }}>Pay from</Label>
-          {chain && <Chips items={chains} value={chain} onChange={setChain} render={(c) => c} />}
+          {chain ? (
+            <Chips items={chains} value={chain} onChange={setChain} render={(c) => c} />
+          ) : loadErr ? (
+            <View>
+              <Body style={{ color: C.below, marginTop: 8, fontSize: 14 }}>Could not load the chains you can pay from. Check your connection.</Body>
+              <Button title="Try again" ghost onPress={loadSources} />
+            </View>
+          ) : (
+            <Body muted style={{ marginTop: 8 }}>Loading chains…</Body>
+          )}
           <Chips items={["USDC", "USDT"]} value={symbol} onChange={setSymbol} render={(s) => s} />
           <Label style={{ marginTop: 16 }}>Arrives as</Label>
           <Chips items={["USDC", "MON"] as Receive[]} value={receive} onChange={setReceive} render={(r) => (r === "USDC" ? "USDC, then AUSD" : "MON for fees")} />
@@ -127,6 +141,7 @@ export function AddMoney({ account, onDone }: { account: LocalAccount; onDone: (
             style={{ fontFamily: F.mono, fontSize: 13, color: C.bone, marginTop: 14, borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 8 }}
           />
           <Button title="Get a deposit address" onPress={getAddress} disabled={!src || !(Number(amount) > 0) || !isAddress(refund)} busy={busy} />
+          {src && !isAddress(refund) && <Body muted style={{ fontSize: 13, marginTop: 8 }}>Paste the address you are sending from on {src.chain}. If anything fails, the money goes back there.</Body>}
         </View>
       ) : (
         <View style={{ marginTop: 14 }}>
