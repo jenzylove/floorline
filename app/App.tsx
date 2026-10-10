@@ -135,7 +135,7 @@ function App() {
     return (
       <View key={scheme} style={[s.welcome, { paddingTop: insets.top + 40, paddingBottom: Math.max(insets.bottom, 12) + 24 }]}>
         <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-        <Glow width={width} height={520} style={{ left: 0, top: 120 }} />
+        <Glow width={width} height={620} style={{ left: 0, top: 80 }} fadeTop />
         <Text style={s.brand}>Floorline</Text>
         <Text style={s.hero}>
           Your MON.{"\n"}

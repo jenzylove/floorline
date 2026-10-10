@@ -30,11 +30,13 @@ export const F = {
 const shadow = (): ViewStyle => ({ shadowColor: C.shadow, shadowOpacity: C.scheme === "dark" ? 0.4 : 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 3 } as const);
 
 /** The soft lime-to-iridescent glow behind hero blocks (SVG, so it ships in an over-the-air update). */
-export function Glow({ width, height, style }: { width: number; height: number; style?: ViewStyle }) {
+export function Glow({ width, height, style, fadeTop }: { width: number; height: number; style?: ViewStyle; fadeTop?: boolean }) {
   return (
     <Svg width={width} height={height} style={[{ position: "absolute" }, style]} pointerEvents="none">
       <Defs>
         <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={C.bg} stopOpacity={fadeTop ? 1 : 0} />
+          <Stop offset="0.25" stopColor={C.bg} stopOpacity="0" />
           <Stop offset="0.55" stopColor={C.bg} stopOpacity="0" />
           <Stop offset="1" stopColor={C.bg} stopOpacity="1" />
         </LinearGradient>
