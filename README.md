@@ -106,6 +106,16 @@ docs/       PRD, plan, build log, deployments, submission checklist.
 
 Safety checks in the vault: price freshness, mark against oracle deviation, a settlement window after which only the owner can settle, an emergency settle after one day, a step limit on volatility updates, a slippage bound on hedge orders, and a block on deposits while the valuation is stale.
 
+## A new market on Kuru
+
+A floor is an ERC 20 token, so it can trade on an order book like any other asset. What makes it a real market and not just a listed token is a price both ways:
+
+* The vault will always mint a floor at its own quote. That is the ceiling.
+* A keeper (`keeper/src/kuru`) reads that quote and keeps a ladder of asks just under it and bids under the vault's value before its spread, on Kuru's order book.
+* When the vault's price moves by more than 1.5%, or an order is filled, the keeper cancels and replaces its orders in one transaction.
+
+So buying a floor on Kuru is never worse than minting one, and a holder can sell before the date. The live book is on [/proof](https://floorline-app.vercel.app/proof). This runs on Monad testnet with a test dollar, on Kuru's older Router, because Spot V2 market creation is owner only. Run it with `npm run kuru` in `keeper/`.
+
 ## Why Monad
 
 * **The whole trade lives on one chain.** Perpl's order book and oracle are contracts on Monad, so the vault reads the price, hedges and settles against the same state, with no bridge and no off chain price feed.
@@ -129,7 +139,7 @@ Limits you should know:
 * **Size is small.** The vault holds a few dollars. This is a working product at demo scale, not a funded one.
 * **The hedge runs through Perpl's API from the operator's Perpl account,** not from the vault contract. Hedge profit and loss is swept to the vault by the operator after each cycle, and every sweep is logged. The contract can also hedge by itself (`HedgedFloorVault.hedge`), and that path is tested on a mainnet fork, but the live bot uses the API.
 * **Chainlink CRE is simulated, not deployed to a DON.** The simulation forwarder does not verify signatures, so CRE reports are recorded as an *observed* volatility for anyone to compare. They never set the price. The keeper posts the pricing volatility, limited to a maximum step per update. The workflow can also settle expired series, but every settlement so far was done by the keeper.
-* **Kuru is on testnet.** A floor token trades on a Kuru order book on Monad testnet with real fills. Kuru Spot V2 market creation is owner only, so that listing depends on Kuru's team.
+* **Kuru is on testnet, with a test dollar.** A floor token has a live two sided market on a Kuru order book there: a keeper quotes bids and asks around the vault's price and refills after fills. Kuru Spot V2 market creation is owner only; we asked Kuru's team on 9 Oct and they are checking on Monday 12 Oct. There is no Kuru market on mainnet.
 * **The owner key has real power:** it can change pricing parameters, pause buys and settle late. There is no timelock or multisig yet.
 * **The keeper is one process.** If it stops, hedging and new series stop. Anyone can still settle an expired series in its window.
 * The contracts have had an internal review only. No external audit.
@@ -142,7 +152,7 @@ Limits you should know:
 | Agora | Mobile trading app. Passkey sign in, AUSD balance, floors paid and backed in AUSD, Perpl trades in the app. |
 | Perpl | Price, settlement oracle and hedge venue. An automated delta hedging bot on Perpl's trading API. |
 | Chainlink CRE | A workflow that computes MON's realised volatility from Perpl candles and writes it on chain as an independent check on the pricing input. |
-| Kuru | Floors as a new asset class on Kuru's order book. |
+| Kuru | Floors as a new asset class on Kuru's order book: the vault mints, prices and settles them, and a keeper makes a two sided market in them on Kuru (testnet). |
 | Aurora Intents | Add money from Base, Arbitrum, Ethereum and more straight into the Monad account. |
 | Mera | The whole account layer. A passkey on the phone, no seed phrase, no extension. |
 | Envio | HyperIndex indexes every vault and volatility event for the proof page and history. |

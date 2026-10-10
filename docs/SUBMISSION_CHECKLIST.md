@@ -20,7 +20,7 @@ Agora, Best Mobile Trading App (Track 01):
 - [x] Write-up of core features. README, "The app"
 
 Kuru, Bring New Assets and Markets (Track 01):
-- [ ] A new class of tradable markets on Kuru's spot order book. Testnet only so far: market and a real fill on Kuru's older Router, 9 Oct. Spot V2 listing waits on Kuru's team (asked 9 Oct, reply: checking Monday 12 Oct)
+- [x] A new class of tradable markets on Kuru's spot order book. Testnet, with a test dollar, on Kuru's older Router: a keeper quotes both sides around the vault's price and refills after fills (10 Oct, first quotes `0x4bbfd93d…acd5`, a taker fill `0x09e31beb…9541`, refill `0xd7f51238…0865`). Spot V2 listing waits on Kuru's team (asked 9 Oct, reply: checking Monday 12 Oct)
 - [x] The infrastructure that makes them viable (vault, pricing, settlement). Live on mainnet
 
 Perpl, Best use of Perpl's API (all tracks):

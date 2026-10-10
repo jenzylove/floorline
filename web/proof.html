@@ -46,6 +46,15 @@
   <div class="feed" id="hedge"></div>
 
   <div class="hair"></div>
+  <h3>A live market on Kuru's order book</h3>
+  <p class="mute" style="font-size:15px;margin-top:6px">Monad testnet, with a test dollar. A keeper reads the vault's price for a floor and keeps bids and asks resting around it, replacing them when the price moves or an order is filled. Read from the book contract right now.</p>
+  <div class="split" style="margin-top:14px;gap:36px">
+    <div><div class="label">Bids, to buy a floor back</div><div id="kuruBids"></div></div>
+    <div><div class="label">Asks, to sell a floor</div><div id="kuruAsks"></div></div>
+  </div>
+  <div class="mute" style="font-size:14px;margin-top:10px" id="kuru"></div>
+
+  <div class="hair"></div>
   <h3>Milestones</h3>
   <div class="feed" id="milestones"></div>
 
@@ -54,7 +63,7 @@
 
 <script type="module" src="/assets/motion.js"></script>
 <script type="module">
-import { $, gql, tx, addr, ADDR, ENVIO, usd, price, pct, ago, client } from "/assets/live.js";
+import { kuruBook, KURU, $, gql, tx, addr, ADDR, ENVIO, usd, price, pct, ago, client } from "/assets/live.js";
 import { parseAbi } from "https://esm.sh/viem@2.57.2";
 const perplAbi = parseAbi([
   "function getPosition(uint256,uint256) view returns ((uint256 accountId,uint256 nextNodeId,uint256 prevNodeId,uint8 positionType,uint256 depositCNS,uint256 pricePNS,uint256 lotLNS,uint256 entryBlock,int256 pnlCNS,int256 deltaPnlCNS,int256 premiumPnlCNS),uint256,bool)",
@@ -134,6 +143,8 @@ const MILESTONES = [
   ["Resale", "Floor token resold on a Monday Trade pool: 17.744 tokens for 0.01 AUSD", "0xceb08ec71266efc179e7c722481330ca83e9506c881808f526f666131fa0ed77"],
   ["Pool", "Monday Trade pool for the 7 day floor token, created at the vault's price", "0xed9b305640820cad828f89c9c75ca5552be9e4e805b2500562337c29f4c04814"],
   ["Kuru", "Testnet: 1,500 protection tokens bought on Kuru's order book at 0.00229 each", "0xdd36ddec456380484620db6abf0eb224551ae555c08b123dc1ee0eab2f5385dd", "testnet"],
+  ["Kuru", "Testnet: the keeper posts its first two sided quotes around the vault's price", "0x4bbfd93df8a4c9d54c0341fb3ff8ef15f071879538feeb99840d7c9f7c99acd5", "testnet"],
+  ["Kuru", "Testnet: a second wallet buys 100 floors from the keeper's ask, and the keeper refills", "0x09e31beb8f7dd06dde3adf3eee66dff124b8c1325982d969fe94e3177e449541", "testnet"],
 ];
 const link = (h, net) => (net === "testnet" ? `https://testnet.monadscan.com/tx/${h}` : tx(h));
 $("#milestones").innerHTML = MILESTONES.map(([k, what, h, net]) => `<div class="item"><span class="k">${k}</span><span>${what}</span><a href="${link(h, net)}" target="_blank">${short(h)} ↗</a></div>`).join("");
@@ -142,6 +153,19 @@ loadHedge().catch((e) => ($("#hedgeLive").innerHTML = `<div class="err">${e.mess
 setInterval(() => loadHedge().catch(() => {}), 30000);
 load().catch((e) => ($("#stats").innerHTML = `<div class="err">Could not reach the indexer: ${e.message}</div>`));
 setInterval(() => load().catch(() => {}), 30000);
+async function loadKuru() {
+  try {
+    const k = await kuruBook();
+    const row = (o) => `<div class="row"><span>${o.size.toLocaleString(undefined, { maximumFractionDigits: 0 })} floors</span><span>$${o.price.toFixed(6)}</span></div>`;
+    document.querySelector("#kuruBids").innerHTML = k.bids.slice(0, 5).map(row).join("") || `<div class="mute">No bids resting.</div>`;
+    document.querySelector("#kuruAsks").innerHTML = k.asks.slice(0, 5).map(row).join("") || `<div class="mute">No asks resting.</div>`;
+    document.querySelector("#kuru").innerHTML = `The vault mints this floor at $${k.mint.toFixed(6)}. Best ask on the book is at or under it, so buying on Kuru is never worse than minting. <a href="${KURU.explorer}/address/${KURU.book}" style="color:inherit">Book contract ↗</a>`;
+  } catch (e) {
+    document.querySelector("#kuru").textContent = `Could not read the testnet book right now: ${e.message}`;
+  }
+}
+loadKuru();
+setInterval(loadKuru, 30000);
 </script>
 </body>
 </html>
