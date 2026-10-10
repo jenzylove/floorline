@@ -9,7 +9,7 @@ winget install OpenJS.NodeJS.LTS
 winget install Git.Git
 
 # 2. Code (a browser window asks you to sign in to GitHub: the repo is private)
-git clone -b claude/optimistic-rubin-o5h0uw https://github.com/jenzylove/floorline.git
+git clone https://github.com/jenzylove/floorline.git
 cd floorline\keeper
 npm ci
 

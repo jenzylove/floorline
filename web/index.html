@@ -60,7 +60,7 @@
   <div class="steps">
     <div><h3>You pay once</h3><p>Pick a floor and a date. The price is set on chain from MON's real volatility, and the quote is what you pay.</p></div>
     <div><h3>The payout is locked</h3><p>The most your floor could ever pay is locked in AUSD the moment you buy. Every floor is fully backed.</p></div>
-    <div><h3>The vault hedges</h3><p>A keeper shorts MON on Perpl through its API to offset the risk. Chainlink CRE checks the volatility input independently.</p></div>
+    <div><h3>The vault hedges</h3><p>A keeper shorts MON on Perpl through its API to offset the risk. A Chainlink CRE workflow checks the volatility input independently.</p></div>
     <div><h3>Settled on the date</h3><p>Seconds after the date the floor settles at Perpl's oracle price. Below your floor, you collect the difference.</p></div>
   </div>
 
@@ -82,7 +82,7 @@
   <h2>What each piece does</h2>
   <div class="sponsors">
     <div><b>Perpl</b><span>The MON price, the settlement oracle and the venue the vault hedges on, through Perpl's trading API.</span></div>
-    <div><b>Chainlink CRE</b><span>Computes MON's volatility from Perpl's candles on independent nodes, as a check on the pricing input, and settles expired floors.</span></div>
+    <div><b>Chainlink CRE</b><span>A workflow computes MON's volatility from Perpl's candles and records it on chain as an independent check on the pricing input. It can also settle expired floors.</span></div>
     <div><b>Agora AUSD + Mera</b><span>Floors are paid and backed in AUSD. Your account is a passkey on your phone. No seed phrase.</span></div>
     <div><b>Aurora Intents</b><span>Add money from Base, Arbitrum, Ethereum and more. It lands in your Monad account in about a minute.</span></div>
     <div><b>Kuru</b><span>Floors are a new asset class on Kuru's order book: a market and real fills on testnet, with the Spot V2 listing set up with Kuru's team.</span></div>
@@ -93,7 +93,7 @@
   <div class="panel" style="text-align:center;padding:48px 24px">
     <h2>Get the <em>app</em></h2>
     <p class="lede" style="margin:16px auto 0">Android. Sign in with your fingerprint. Protect, earn, trade MON on Perpl and add money from any chain.</p>
-    <div class="btns" style="justify-content:center"><a class="btn" href="https://expo.dev/accounts/jdollars-team/projects/floorline/builds">Download for Android</a><a class="btn ghost" href="/proof">See every transaction</a></div>
+    <div class="btns" style="justify-content:center"><a class="btn" href="https://github.com/jenzylove/floorline/releases/latest/download/floorline.apk">Download for Android</a><a class="btn ghost" href="/proof">See every transaction</a></div>
   </div>
 
   <footer><span>Floorline · Monad Metropolis 2026</span><span>Not investment advice. Floors can expire worthless.</span></footer>

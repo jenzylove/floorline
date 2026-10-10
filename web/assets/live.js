@@ -19,7 +19,7 @@ export const ADDR = {
 };
 export const ENVIO = "https://indexer.dev.hyperindex.xyz/194cebd/v1/graphql";
 export const PERPL_API = "https://app.perpl.xyz/api";
-export const APK = "https://expo.dev/accounts/jdollars-team/projects/floorline/builds";
+export const APK = "https://github.com/jenzylove/floorline/releases/latest/download/floorline.apk";
 export const tx = (h) => `https://monadscan.com/tx/${h}`;
 export const addr = (a) => `https://monadscan.com/address/${a}`;
 
