@@ -5,63 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Floorline · protect your MON without selling it</title>
 <meta name="description" content="Pay once, set a floor under your MON until a date you pick, keep the coins and the upside. Fully backed in AUSD, hedged on Perpl, live on Monad mainnet.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0c0a'/><path d='M5 12 L11 9 L16 14 L21 7 L27 11' stroke='%23f2efe6' stroke-width='2' fill='none'/><rect x='5' y='20' width='22' height='2.5' fill='%23d8ff3d'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23121410'/><path d='M5 13 L11 10 L16 15 L21 8 L27 12' stroke='%23f4f4ee' stroke-width='2' fill='none'/><rect x='5' y='20' width='22' height='3' rx='1.5' fill='%23b8e62e'/></svg>">
 <link rel="stylesheet" href="/assets/site.css">
 </head>
 <body>
 <div class="wrap">
+  <div class="glow"></div>
   <nav class="top">
     <a class="brand" href="/"><i></i>Floorline</a>
-    <div class="links"><a href="/demo">Try it</a><a href="/proof">Proof</a><a href="https://github.com/jenzylove/floorline">Code</a></div>
+    <div class="links"><a href="/demo">Try it</a><a href="/proof">Proof</a><a href="https://github.com/jenzylove/floorline">Code</a><a class="cta" href="#get">Get the app</a></div>
   </nav>
 
-  <h1 class="hero">Protect your MON<br>without selling it.</h1>
-  <div class="rule"></div>
-  <p class="lede">Pay once. Pick a floor and a date. If MON ends below your floor, you get the difference in AUSD for every MON you protected. You keep your coins and all the upside.</p>
-  <div class="btns">
-    <a class="btn" href="/demo">Price your floor →</a>
-    <a class="btn ghost" id="apk" href="#get">Get the app</a>
-  </div>
+  <section class="heroGrid">
+    <div>
+      <span class="pill">Live on Monad mainnet</span>
+      <h1 class="hero" style="margin-top:22px">Your MON.<br><em>Protected.</em></h1>
+      <p class="lede">Pay once and set a floor under your MON until a date you pick. If MON ends below it, you get the difference in AUSD. You keep your coins and all the upside.</p>
+      <div class="btns">
+        <a class="btn" href="/demo">Price your floor →</a>
+        <a class="btn ghost" href="#get">Get the app</a>
+      </div>
+    </div>
+    <div class="stack" aria-label="Live numbers from the vault">
+      <div class="w a float"><div class="k">MON on Perpl, live</div><div class="v" id="wSpot">…</div></div>
+      <div class="w b dark float b2"><div class="k" id="wFloorK">A floor on sale now</div><div class="v" id="wFloor">…</div><div class="bar"></div></div>
+      <div class="w c soft float c2"><div class="k">Protect 10,000 MON for</div><div class="v lime" id="wPrem">…</div></div>
+      <div class="w d float"><div class="k" id="wPayK">If MON falls 40%, it pays</div><div class="v" id="wPay">…</div></div>
+    </div>
+  </section>
 
   <div class="hair"></div>
 
   <div class="split">
-    <div>
-      <span class="pill">Live on Monad mainnet</span>
-      <div class="label" style="margin-top:22px">MON on Perpl</div>
-      <div class="big" id="spot">…</div>
-      <div class="mute mono" id="spotAt" style="font-size:12px;margin-top:6px"></div>
+    <div class="panel">
+      <div class="label">MON over the last 24 hours, with the floors on sale</div>
+      <div class="big" id="spot" style="margin-top:6px">…</div>
+      <div class="mute" id="spotAt" style="font-size:14px;margin-top:6px"></div>
       <svg class="chart" id="chart"></svg>
-      <div class="label" style="margin-top:6px">Last 24 hours · dashed lines are the floors on sale right now</div>
     </div>
     <div>
-      <div class="label">On sale now</div>
-      <div id="menu" style="margin-top:12px"></div>
-      <div class="label" style="margin-top:34px">The vault behind every floor</div>
+      <h3>On sale now</h3>
+      <div id="menu" style="margin-top:8px"></div>
+      <h3 style="margin-top:34px">The vault behind every floor</h3>
       <div id="vault" style="margin-top:6px"></div>
     </div>
   </div>
 
   <div class="hair"></div>
 
-  <h2>How a floor works</h2>
+  <h2>How a <em>floor</em> works</h2>
   <div class="steps">
-    <div><h3>You pay once</h3><p>Pick a floor and a date. The premium is priced on chain from MON's real volatility, and the quote is what you pay.</p></div>
-    <div><h3>The payout is locked</h3><p>The most your floor could ever pay is locked in AUSD the moment you buy. Every protection token is fully backed. No promises, no leverage.</p></div>
-    <div><h3>The vault hedges</h3><p>A keeper shorts MON on Perpl through its API to offset the risk, and posts the volatility input. Chainlink CRE checks it independently.</p></div>
-    <div><h3>Settled at the date</h3><p>Seconds after expiry the series settles at Perpl's oracle price. Below your floor, you collect the difference. Above it, you kept the upside.</p></div>
+    <div><h3>You pay once</h3><p>Pick a floor and a date. The price is set on chain from MON's real volatility, and the quote is what you pay.</p></div>
+    <div><h3>The payout is locked</h3><p>The most your floor could ever pay is locked in AUSD the moment you buy. Every floor is fully backed.</p></div>
+    <div><h3>The vault hedges</h3><p>A keeper shorts MON on Perpl through its API to offset the risk. Chainlink CRE checks the volatility input independently.</p></div>
+    <div><h3>Settled on the date</h3><p>Seconds after the date the floor settles at Perpl's oracle price. Below your floor, you collect the difference.</p></div>
   </div>
 
   <div class="hair"></div>
 
   <div class="split">
     <div>
-      <h2>Or earn the premiums.</h2>
-      <p class="lede" style="font-size:19px">Put AUSD in the vault. It backs the floors people buy and keeps what they pay. When MON falls hard, payouts come out of the vault, so you can lose part of what you put in. The hedge on Perpl softens that, it does not remove it.</p>
+      <h2>Or <em>earn</em> the premiums.</h2>
+      <p class="lede">Put AUSD in the vault. It backs the floors people buy and keeps what they pay. When MON falls hard, payouts come out of the vault, so you can lose part of what you put in. The hedge on Perpl softens that, it does not remove it.</p>
     </div>
     <div>
-      <h2>Resell any time.</h2>
-      <p class="lede" style="font-size:19px">Each floor is a token. Sell it before the date. On mainnet a Monday Trade pool already has real resales. On Kuru's on-chain order book, protection has traded on testnet, and Kuru is listing it on Spot V2.</p>
+      <h2>Resell <em>any time.</em></h2>
+      <p class="lede">Each floor is a token. On mainnet a Monday Trade pool already has real resales. On Kuru's on-chain order book, floors have traded on testnet, and Kuru is listing them on Spot V2.</p>
     </div>
   </div>
 
@@ -69,24 +78,26 @@
 
   <h2>What each piece does</h2>
   <div class="sponsors">
-    <div><b>Perpl</b><span>The MON price, settlement oracle and the venue the vault hedges on, through Perpl's trading API.</span></div>
-    <div><b>Chainlink CRE</b><span>Computes MON's volatility from Perpl's candles on independent nodes and settles expired floors.</span></div>
-    <div><b>Agora AUSD + Mera</b><span>Floors are paid and backed in AUSD. Your account is a passkey on your phone, no seed phrase.</span></div>
+    <div><b>Perpl</b><span>The MON price, the settlement oracle and the venue the vault hedges on, through Perpl's trading API.</span></div>
+    <div><b>Chainlink CRE</b><span>Computes MON's volatility from Perpl's candles on independent nodes, as a check on the pricing input, and settles expired floors.</span></div>
+    <div><b>Agora AUSD + Mera</b><span>Floors are paid and backed in AUSD. Your account is a passkey on your phone. No seed phrase.</span></div>
     <div><b>Aurora Intents</b><span>Add money from Base, Arbitrum, Ethereum and more. It lands in your Monad account in about a minute.</span></div>
-    <div><b>Kuru</b><span>Protection is a new asset class on Kuru's order book: a market and real fills on testnet, with the Spot V2 listing set up with Kuru's team.</span></div>
-    <div><b>Envio</b><span>Indexes every vault action, hedge fill and volatility update for the proof page and your history.</span></div>
+    <div><b>Kuru</b><span>Floors are a new asset class on Kuru's order book: a market and real fills on testnet, with the Spot V2 listing set up with Kuru's team.</span></div>
+    <div><b>Envio</b><span>Indexes every vault action and volatility update for the proof page.</span></div>
   </div>
 
   <div class="hair" id="get"></div>
-  <h2>Get the app</h2>
-  <p class="lede" style="font-size:19px">Android, sign in with your fingerprint. Protect, earn, trade MON on Perpl and add money from any chain.</p>
-  <div class="btns"><a class="btn" href="https://expo.dev/accounts/jdollars-team/projects/floorline/builds">Download for Android</a><a class="btn ghost" href="/proof">See every transaction</a></div>
+  <div class="panel" style="text-align:center;padding:48px 24px">
+    <h2>Get the <em>app</em></h2>
+    <p class="lede" style="margin:16px auto 0">Android. Sign in with your fingerprint. Protect, earn, trade MON on Perpl and add money from any chain.</p>
+    <div class="btns" style="justify-content:center"><a class="btn" href="https://expo.dev/accounts/jdollars-team/projects/floorline/builds">Download for Android</a><a class="btn ghost" href="/proof">See every transaction</a></div>
+  </div>
 
-  <footer><span>FLOORLINE · MONAD METROPOLIS 2026</span><span>NOT INVESTMENT ADVICE · FLOORS CAN EXPIRE WORTHLESS</span></footer>
+  <footer><span>Floorline · Monad Metropolis 2026</span><span>Not investment advice. Floors can expire worthless.</span></footer>
 </div>
 
 <script type="module">
-import { $, market, vault, openSeries, candles, quote, drawChart, price, usd, pct, ago, floorLabel } from "/assets/live.js";
+import { $, market, vault, openSeries, candles, quote, drawChart, price, usd, pct, ago, floorLabel, until } from "/assets/live.js";
 
 let chart = [], menu = [];
 async function load() {
@@ -94,9 +105,21 @@ async function load() {
     const [m, v, s] = await Promise.all([market(), vault(), openSeries()]);
     menu = s;
     $("#spot").textContent = price(m.spot);
-    $("#spotAt").textContent = `Perpl oracle · updated ${ago(m.spotAt)} · priced at ${pct(m.vol)} volatility (Chainlink CRE observed ${pct(m.observed)})`;
+    $("#wSpot").textContent = price(m.spot);
+    $("#spotAt").textContent = `Perpl oracle, updated ${ago(m.spotAt)} · priced at ${pct(m.vol)} volatility, Chainlink CRE observed ${pct(m.observed)}`;
     const quotes = await Promise.all(s.map((x) => quote(x.id, 1000)));
-    $("#menu").innerHTML = s.length ? s.map((x, i) => `<div class="row"><span>${floorLabel(x, m.spot)}</span><span>${"premium" in quotes[i] ? `${usd(quotes[i].premium, 3)} <span class="mute">per 1,000 MON</span>` : `<span class="mute">quote refreshing</span>`}</span></div>`).join("") : `<div class="mute">New floors open every few minutes.</div>`;
+    $("#menu").innerHTML = s.length
+      ? s.map((x, i) => `<div class="row"><span>${floorLabel(x, m.spot)}</span><span>${"premium" in quotes[i] ? `${usd(quotes[i].premium, 3)} <span class="mute">per 1,000 MON</span>` : `<span class="mute">quote refreshing</span>`}</span></div>`).join("")
+      : `<div class="mute">New floors open every few minutes.</div>`;
+    // hero widgets: the 7 day floor closest to 10% below, its live price for 10,000 MON, and what it pays at -40%
+    const pick = s.filter((x) => x.expiry - Date.now() / 1000 > 2 * 86400).sort((a, b) => Math.abs(a.strike / m.spot - 0.9) - Math.abs(b.strike / m.spot - 0.9))[0] ?? s[0];
+    if (pick) {
+      $("#wFloorK").textContent = `A floor on sale · ${until(pick.expiry - Date.now() / 1000)}`;
+      $("#wFloor").textContent = price(pick.strike);
+      const q = await quote(pick.id, 10000);
+      $("#wPrem").textContent = "premium" in q ? usd(q.premium) : "…";
+      $("#wPay").textContent = usd(Math.max(0, pick.strike - m.spot * 0.6) * 10000);
+    }
     $("#vault").innerHTML = [
       ["Owned by depositors", usd(v.totalAssets)],
       ["Locked behind floors", usd(v.locked)],

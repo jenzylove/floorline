@@ -130,12 +130,12 @@ export function drawChart(svg, data, floors = [], lit) {
     <path d="${path} L${w},${h} L0,${h} Z" fill="url(#fa)"/>`;
   for (const f of floors) {
     if (f === lit) continue;
-    out += `<line x1="0" x2="${w}" y1="${y(f)}" y2="${y(f)}" style="stroke:var(--floor);stroke-opacity:.35;stroke-dasharray:3 6"/>`;
+    out += `<line x1="0" x2="${w}" y1="${y(f)}" y2="${y(f)}" style="stroke:var(--bone);stroke-opacity:.22;stroke-dasharray:3 6"/>`;
   }
   if (lit !== undefined) {
     out += `<rect x="0" y="${y(lit)}" width="${w}" height="${Math.max(0, h - y(lit))}" fill="url(#fc)"/>
       <line class="lit" x1="0" x2="${w}" y1="${y(lit)}" y2="${y(lit)}" style="stroke:var(--floor);stroke-width:2"/>
-      <text x="${w - 6}" y="${y(lit) - 8}" style="fill:var(--floor)" font-family="JetBrains Mono" font-size="11" text-anchor="end" letter-spacing="1.5">FLOOR ${price(lit)}</text>`;
+      <text x="${w - 6}" y="${y(lit) - 8}" style="fill:var(--floorInk)" font-family="Jost" font-weight="600" font-size="13" text-anchor="end">FLOOR ${price(lit)}</text>`;
   }
   // the trace animation plays on the first draw only, not on every live refresh
   const first = !svg.dataset.drawn;
