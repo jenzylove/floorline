@@ -3,6 +3,8 @@
 Status: LOCKED 2026-09-30. Monad Metropolis, Track 01 (Onchain Finance & Trading).
 Deadline: 13 Oct 2026, 11:59 PM ET (14 Oct 03:59 UTC). Target: code freeze 12 Oct.
 
+This is the plan as locked on 30 Sep. Where what shipped differs (hedge custody, Chainlink CRE's role, Kuru on testnet), the README's "What is real, and what is not" is the record.
+
 ## One line
 
 Buy protection for your coins: pay a small, fixed amount and your MON, BTC or ETH can't lose
