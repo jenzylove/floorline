@@ -32,8 +32,8 @@
   }
 }
 * { box-sizing: border-box; margin: 0; }
-html { background: var(--ink); }
-body { background: var(--ink); color: var(--bone); font: 18px/1.55 var(--display); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+html { background: var(--ink); overflow-x: clip; }
+body { background: var(--ink); color: var(--bone); font: 18px/1.55 var(--display); -webkit-font-smoothing: antialiased; overflow-x: clip; }
 a { color: inherit; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; position: relative; }
 .label { font: 500 14px/1.4 var(--display); color: var(--mute); }

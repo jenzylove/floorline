@@ -50,7 +50,7 @@
 </div>
 
 <script type="module">
-import { $, market, openSeries, candles, quote, drawChart, price, usd, floorLabel } from "/assets/live.js";
+import { $, market, openSeries, candles, quote, drawChart, price, usd, floorLabel, shortlist } from "/assets/live.js";
 
 const AMOUNTS = [1000, 10000, 50000, 100000];
 let spot = 0, series = [], chosen, units = 10000, premium, chart = [];
@@ -115,7 +115,7 @@ async function load() {
   const [m, s] = await Promise.all([market(), openSeries()]);
   spot = m.spot;
   $("#spot").textContent = price(spot);
-  series = s;
+  series = shortlist(s, spot).all;
   if (!chosen || !series.find((x) => x.id === chosen.id)) chosen = series[0];
   renderFloors();
   refreshQuote();

@@ -148,3 +148,19 @@ export function drawChart(svg, data, floors = [], lit) {
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+/** A short menu a person can read: for a day and for a week, the floor at today's price and the two nearest steps below it. */
+export function shortlist(series, spot) {
+  const now = Date.now() / 1000;
+  const pick = (list) => {
+    const seen = new Set();
+    return list
+      .filter((s) => s.strike <= spot * 1.01)
+      .sort((a, b) => b.strike - a.strike || b.expiry - a.expiry)
+      .filter((s) => { const k = Math.round((1 - s.strike / spot) * 20); if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, 3);
+  };
+  const day = pick(series.filter((s) => s.expiry - now <= 2 * 86400));
+  const week = pick(series.filter((s) => s.expiry - now > 2 * 86400));
+  return { day, week, all: [...day, ...week] };
+}

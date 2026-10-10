@@ -97,19 +97,22 @@
 </div>
 
 <script type="module">
-import { $, market, vault, openSeries, candles, quote, drawChart, price, usd, pct, ago, floorLabel, until } from "/assets/live.js";
+import { $, market, vault, openSeries, candles, quote, drawChart, price, usd, pct, ago, floorLabel, until, shortlist } from "/assets/live.js";
 
 let chart = [], menu = [];
 async function load() {
   try {
     const [m, v, s] = await Promise.all([market(), vault(), openSeries()]);
-    menu = s;
+    const short = shortlist(s, m.spot);
+    menu = short.all;
     $("#spot").textContent = price(m.spot);
     $("#wSpot").textContent = price(m.spot);
     $("#spotAt").textContent = `Perpl oracle, updated ${ago(m.spotAt)} · priced at ${pct(m.vol)} volatility, Chainlink CRE observed ${pct(m.observed)}`;
-    const quotes = await Promise.all(s.map((x) => quote(x.id, 1000)));
-    $("#menu").innerHTML = s.length
-      ? s.map((x, i) => `<div class="row"><span>${floorLabel(x, m.spot)}</span><span>${"premium" in quotes[i] ? `${usd(quotes[i].premium, 3)} <span class="mute">per 1,000 MON</span>` : `<span class="mute">quote refreshing</span>`}</span></div>`).join("")
+    const quotes = new Map(await Promise.all(menu.map(async (x) => [x.id, await quote(x.id, 1000)])));
+    const line = (x) => { const q = quotes.get(x.id); return `<div class="row"><span>${floorLabel(x, m.spot).split(" · ")[0]}</span><span>${"premium" in q ? `${usd(q.premium, 3)} <span class="mute">per 1,000 MON</span>` : `<span class="mute">quote refreshing</span>`}</span></div>`; };
+    const group = (title, list) => list.length ? `<div class="label" style="margin-top:18px">${title}</div>${list.map(line).join("")}` : "";
+    $("#menu").innerHTML = menu.length
+      ? group("For a day", short.day) + group("For a week", short.week)
       : `<div class="mute">New floors open every few minutes.</div>`;
     // hero widgets: the 7 day floor closest to 10% below, its live price for 10,000 MON, and what it pays at -40%
     const pick = s.filter((x) => x.expiry - Date.now() / 1000 > 2 * 86400).sort((a, b) => Math.abs(a.strike / m.spot - 0.9) - Math.abs(b.strike / m.spot - 0.9))[0] ?? s[0];
