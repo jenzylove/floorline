@@ -20,7 +20,8 @@ Agora, Best Mobile Trading App (Track 01):
 - [x] Write-up of core features. README, "The app"
 
 Kuru, Bring New Assets and Markets (Track 01):
-- [x] A new class of tradable markets on Kuru Spot V2. FLOOR/USDC `0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38`, registered by Kuru's team 11 Oct `0xae140900…91f1`; keeper quotes `0x7cba244b…c4ba`, taker fill `0x4c811176…9274`, refill `0x192c5148…a542`. Testnet. Before that, on Kuru's older Router: Testnet, with a test dollar, on Kuru's older Router: a keeper quotes both sides around the vault's price and refills after fills (10 Oct, first quotes `0x4bbfd93d…acd5`, a taker fill `0x09e31beb…9541`, refill `0xd7f51238…0865`). Spot V2 listing waits on Kuru's team (asked 9 Oct, reply: checking Monday 12 Oct)
+- [x] A new class of tradable markets on Kuru Spot V2. FLOOR/USDC `0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38`, registered by Kuru's team 11 Oct `0xae140900…91f1`; keeper quotes `0x7cba244b…c4ba`, taker fill `0x4c811176…9274`, refill `0x192c5148…a542`. Monad testnet, Kuru's test USDC.
+- [x] Before the V2 listing: the same market on Kuru's older Router, testnet, with a test dollar (10 Oct, quotes `0x4bbfd93d…acd5`, taker fill `0x09e31beb…9541`, refill `0xd7f51238…0865`). Retired once V2 was live.
 - [x] The infrastructure that makes them viable (vault, pricing, settlement). Live on mainnet
 
 Kuru, Next Consumer Trading App (Track 01):
