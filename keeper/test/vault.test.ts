@@ -90,6 +90,12 @@ describe("rolling series", () => {
     expect(todo).toHaveLength(1);
     expect(todo[0].expiry).toBe(now + 86_400 + 60);
   });
+  it("stops opening series at the cap, so a fast market cannot pile them up", () => {
+    expect(seriesToCreate(plan, [], spot, now, 2)).toHaveLength(2);
+    const far = Array.from({ length: 5 }, (_, i) => ({ strike: 10_000 + i, expiry: now + 500_000, createdAt: now - 100 }));
+    expect(seriesToCreate(plan, far, spot, now, 5)).toHaveLength(0);
+    expect(seriesToCreate(plan, far, spot, now, 6)).toHaveLength(1);
+  });
   it("ignores a 1 hour demo series when looking for daily cover", () => {
     const todo = seriesToCreate(plan, [{ strike: 24_338, expiry: now + 3_000, createdAt: now - 600 }], spot, now);
     expect(todo).toHaveLength(3);

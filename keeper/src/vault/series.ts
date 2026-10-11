@@ -36,9 +36,11 @@ export function parsePlan(s: string): PlanEntry[] {
  * Strikes snap to a grid of 0.5% of spot so repeated runs produce the same strikes, not a new series per
  * price tick. Returns the entries that need a new series now.
  */
-export function seriesToCreate(plan: PlanEntry[], open: OpenSeries[], spot6: number, nowSec: number): { strike: number; expiry: number }[] {
+export function seriesToCreate(plan: PlanEntry[], open: OpenSeries[], spot6: number, nowSec: number, maxOpen = Infinity): { strike: number; expiry: number }[] {
   const out: { strike: number; expiry: number }[] = [];
   for (const e of plan) {
+    // every open series costs gas on each vault action, so a fast market must not open them without limit
+    if (open.length + out.length >= maxOpen) break;
     // an entry is covered by an open series of the same tenor whose strike is within 2% of the target
     // and that still has at least a third of its tenor left
     const target = spot6 * e.moneyness;

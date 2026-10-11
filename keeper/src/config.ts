@@ -40,6 +40,7 @@ export function loadConfig() {
     /** Standing menu of series the keeper keeps open, e.g. "1d:1.00,1d:0.90,7d:0.90". Empty turns it off. */
     seriesPlan: process.env.SERIES_PLAN ?? "1d:1.00,1d:0.95,1d:0.90,7d:1.00,7d:0.90,7d:0.80",
     seriesEveryMs: num("SERIES_EVERY_MS", 5 * 60_000),
+    maxOpenSeries: num("MAX_OPEN_SERIES", 14),
     vol: {
       /** Post the pricing vol this often. 0 turns it off (another updater posts it). */
       everyMs: num("VOL_EVERY_MS", 30 * 60_000),

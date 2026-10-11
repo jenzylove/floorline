@@ -62,7 +62,7 @@ async function rollSeries(mkt: number) {
   lastSeriesAt = Date.now();
   try {
     const now = Math.floor(Date.now() / 1000);
-    const todo = seriesToCreate(plan, await keeperTx.openSeries(mkt), await keeperTx.spot6(mkt), now);
+    const todo = seriesToCreate(plan, await keeperTx.openSeries(mkt), await keeperTx.spot6(mkt), now, cfg.maxOpenSeries);
     for (const t of todo) {
       log("series_create", { mkt, ...t });
       await keeperTx.createSeries(mkt, t.strike, t.expiry);
