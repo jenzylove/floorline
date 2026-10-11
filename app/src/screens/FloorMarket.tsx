@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, TextInput, View } from "react-native";
 import type { LocalAccount } from "viem";
 import { friendly } from "../errors";
-import { KURU, kuruTrade, kuruView, type KuruView } from "../kuru";
+import { KURU, kuruTrade, kuruView, minFloors, planFill, type KuruView } from "../kuru";
 import { Big, Body, Button, C, Card, Chips, F, Label, Row, Segment, Title, usd } from "../ui";
 
-const SIZES = [7_000, 10_000, 15_000];
 const p6 = (v: number) => `$${v.toFixed(6)}`;
 
 /**
@@ -16,7 +15,7 @@ export function FloorMarket({ account }: { account: LocalAccount }) {
   const [v, setV] = useState<KuruView>();
   const [loadErr, setLoadErr] = useState<string>();
   const [side, setSide] = useState<"buy" | "sell">("buy");
-  const [size, setSize] = useState(SIZES[0]);
+  const [amt, setAmt] = useState("");
   const [steps, setSteps] = useState<{ label: string; hash?: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
@@ -35,25 +34,37 @@ export function FloorMarket({ account }: { account: LocalAccount }) {
     return () => clearInterval(t);
   }, [account.address]);
 
-  const best = side === "buy" ? v?.asks[0] : v?.bids[0];
-  const cost = best ? size * best.price : 0;
+  const levels = v ? (side === "buy" ? v.asks : v.bids) : [];
+  const best = levels[0];
+  const least = best ? minFloors(best.price) : 0; // the smallest order the market takes, in floors
+  const onOffer = levels.reduce((a, l) => a + l.size, 0);
   const haveUsdc = v ? v.usdcWallet + v.usdcKuru : 0;
   const haveFloors = v ? v.floorsWallet + v.floorsKuru : 0;
+  const size = Math.floor(Number(amt) || 0);
+  const plan = planFill(levels, size);
+  const cost = plan.usd;
+  // quick picks follow the live price, so they are always valid orders
+  const picks = [least, Math.ceil((least * 2) / 1000) * 1000, Math.floor(onOffer)].filter((n, i, a) => n > 0 && n <= onOffer && a.indexOf(n) === i);
+  useEffect(() => {
+    if (!amt && least > 0) setAmt(String(least));
+  }, [least]);
   const blocker = !v
     ? undefined
     : !best
-      ? "Nobody is on that side of the book right now."
-      : best.size < size
-        ? `Only ${best.size.toLocaleString()} floors rest at the best price. Pick a smaller size.`
-        : cost < KURU.minOrderUsd
-          ? `Orders here must be at least $${KURU.minOrderUsd}.`
-          : v.mon < 0.05
-            ? "You need a little testnet MON for the network fee."
-            : side === "buy" && haveUsdc < cost * 1.02
-              ? "You need test USDC on Monad testnet to buy here."
-              : side === "sell" && haveFloors < size
-                ? "You don't hold that many floors on testnet yet. Buy some first."
-                : undefined;
+      ? "Nobody is on that side of the book right now. Check back in a minute."
+      : size <= 0
+        ? "Type how many floors."
+        : size < least
+          ? `The smallest order on this market is $${KURU.minOrderUsd}, which is ${least.toLocaleString()} floors at this price.`
+          : plan.short
+            ? `Only ${Math.floor(onOffer).toLocaleString()} floors are on offer right now. Type a smaller number.`
+            : v.mon < 0.05
+              ? "You need a little testnet MON for the network fee."
+              : side === "buy" && haveUsdc < cost * 1.02
+                ? "You don't have enough test USDC for that."
+                : side === "sell" && haveFloors < size
+                  ? `You hold ${Math.floor(haveFloors).toLocaleString()} floors on testnet. Buy some first, or type a smaller number.`
+                  : undefined;
 
   async function run() {
     if (!v || !best) return;
@@ -62,8 +73,8 @@ export function FloorMarket({ account }: { account: LocalAccount }) {
     setNote(undefined);
     setSteps([]);
     try {
-      await kuruTrade(account, side, size, best.price, v, (label, hash) => setSteps((st) => (hash ? st.map((x) => (x.label === label && !x.hash ? { label, hash } : x)) : [...st, { label }])));
-      setNote(side === "buy" ? `You bought ${size.toLocaleString()} floors on Kuru at ${p6(best.price)} each.` : `You sold ${size.toLocaleString()} floors on Kuru at ${p6(best.price)} each.`);
+      await kuruTrade(account, side, size, plan.limit, plan.usd, v, (label, hash) => setSteps((st) => (hash ? st.map((x) => (x.label === label && !x.hash ? { label, hash } : x)) : [...st, { label }])));
+      setNote(side === "buy" ? `You bought ${size.toLocaleString()} floors on Kuru for about ${usd(cost)}.` : `You sold ${size.toLocaleString()} floors on Kuru for about ${usd(cost)}.`);
       await load();
     } catch (e) {
       setErr(friendly(e));
@@ -129,12 +140,28 @@ export function FloorMarket({ account }: { account: LocalAccount }) {
           </Card>
 
           <Card style={{ marginTop: 14 }}>
-            <Segment items={["buy", "sell"] as ("buy" | "sell")[]} value={side} onChange={setSide} render={(s) => (s === "buy" ? "Buy floors" : "Sell floors")} />
-            <Label style={{ marginTop: 14 }}>How many</Label>
-            <Chips items={SIZES} value={size} onChange={setSize} render={(n) => n.toLocaleString()} />
-            <Row k={side === "buy" ? "You pay about" : "You get about"} v={best ? usd(cost) : "…"} strong />
+            <Segment items={["buy", "sell"] as ("buy" | "sell")[]} value={side} onChange={(x) => { setSide(x); setAmt(""); }} render={(s) => (s === "buy" ? "Buy floors" : "Sell floors")} />
+            <Label style={{ marginTop: 14 }}>How many floors</Label>
+            <TextInput
+              value={amt}
+              onChangeText={(t) => setAmt(t.replace(/[^0-9]/g, ""))}
+              placeholder={least ? String(least) : "0"}
+              placeholderTextColor={C.mute}
+              keyboardType="number-pad"
+              style={{ fontFamily: F.display, fontSize: 40, color: C.ink, marginTop: 4, letterSpacing: -1 }}
+            />
+            <Chips items={picks} value={size} onChange={(n) => setAmt(String(n))} render={(n) => (n === least ? `Smallest · ${n.toLocaleString()}` : n === Math.floor(onOffer) ? `All on offer · ${n.toLocaleString()}` : n.toLocaleString())} />
+            {side === "sell" && haveFloors >= least && (
+              <Pressable onPress={() => setAmt(String(Math.floor(Math.min(haveFloors, onOffer))))} style={{ marginTop: 10 }}>
+                <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.mute }}>
+                  You hold {Math.floor(haveFloors).toLocaleString()} · <Text style={{ color: C.ink, textDecorationLine: "underline" }}>sell all</Text>
+                </Text>
+              </Pressable>
+            )}
+            <Row k={side === "buy" ? "You pay about" : "You get about"} v={best && size > 0 ? usd(cost) : "…"} strong />
+            {best && size > 0 && plan.limit !== best.price && <Row k="Average price" v={p6(cost / Math.max(1, plan.floors))} />}
             <Row k="Each floor protects" v="1 MON below $0.0222" />
-            <Button title={side === "buy" ? `Buy ${size.toLocaleString()} floors on Kuru` : `Sell ${size.toLocaleString()} floors on Kuru`} onPress={run} disabled={!!blocker || !best} busy={busy} />
+            <Button title={size > 0 ? (side === "buy" ? `Buy ${size.toLocaleString()} floors on Kuru` : `Sell ${size.toLocaleString()} floors on Kuru`) : side === "buy" ? "Buy on Kuru" : "Sell on Kuru"} onPress={run} disabled={!!blocker || !best} busy={busy} />
             {blocker && <Body muted style={{ fontSize: 14, marginTop: 8 }}>{blocker}</Body>}
             {note && <Body style={{ color: C.limeInk, fontFamily: F.semi, marginTop: 10 }}>{note}</Body>}
             {steps.map((st, i) => (

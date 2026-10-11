@@ -18,7 +18,7 @@ import { type Market, V2, accountIdOf, balances, clients, depositAll, pub, readM
 
 const EVERY_MS = Number(process.env.KURU_EVERY_MS ?? 60_000);
 const TRADING = process.env.KURU_TRADING === "1";
-const SIZE = Number(process.env.KURU_SIZE ?? 9_000); // floors per level; each level must clear the market's 10 USDC minimum
+const LEVEL_USD = Number(process.env.KURU_LEVEL_USD ?? 18); // value of each level; the market rejects anything under 10 USDC
 const STATE = "logs/kuru-v2.json";
 const vaultAbi = parseAbi(["function quote(uint256 seriesId, uint256 amount) view returns (uint256 premium)"]);
 
@@ -49,7 +49,9 @@ async function cycle(c: ReturnType<typeof clients>, m: Market, userId: bigint) {
   const filled = state.quoted && state.base !== undefined && (Math.abs(base - state.base) > 1 || Math.abs(quote - (state.quote ?? quote)) > 0.01);
 
   const book = { pricePrecision: m.pricePrecision, sizePrecision: m.sizePrecision, tick: m.tick, minSize: 1n, minNotional: m.minQuoteNotional };
-  const want = ladder(mint, book, base, quote, { ...DEFAULTS, sizeTokens: SIZE });
+  // floors per level follow the price, so each level stays worth about LEVEL_USD as the floor's value moves
+  const sizeTokens = mint > 0 ? Math.ceil(LEVEL_USD / mint / 1000) * 1000 : 0;
+  const want = ladder(mint, book, base, quote, { ...DEFAULTS, sizeTokens });
   log("kuru_v2_quote", { mint, floors: base, usdc: quote, filled, bids: want.bids.map(show(m)), asks: want.asks.map(show(m)), resting: state.quoted });
 
   const pull = !(mint > 0) && state.quoted;
@@ -95,7 +97,7 @@ async function main() {
   if (TRADING) for (const t of [m.base, m.quote]) await depositAll(c, t); // anything still in the wallet goes to work
   const userId = BigInt(await accountIdOf(c.account.address));
   if (userId === 0n) throw new Error("the maker has no Kuru account yet: deposit first");
-  log("kuru_v2_mode", { market: V2.market, vault: V2.vault, maker: c.account.address, userId: Number(userId), trading: TRADING, everyMs: EVERY_MS, size: SIZE });
+  log("kuru_v2_mode", { market: V2.market, vault: V2.vault, maker: c.account.address, userId: Number(userId), trading: TRADING, everyMs: EVERY_MS, levelUsd: LEVEL_USD });
   for (;;) {
     try {
       await cycle(c, m, userId);

@@ -79,6 +79,28 @@ export async function kuruView(me: Address): Promise<KuruView> {
   };
 }
 
+/**
+ * What taking `floors` from one side of the book would do: how many are there to take, what it costs or
+ * pays, and the furthest price it has to reach. That last price is the order's limit.
+ */
+export function planFill(levels: Level[], floors: number): { floors: number; usd: number; limit: number; short: boolean } {
+  let left = floors, usd = 0, limit = 0;
+  for (const l of levels) {
+    if (left <= 0) break;
+    const take = Math.min(left, l.size);
+    usd += take * l.price;
+    limit = l.price;
+    left -= take;
+  }
+  return { floors: floors - Math.max(0, left), usd, limit, short: left > 0 };
+}
+
+/** The fewest floors that clear the market's minimum order at this price, rounded up to a tidy number. */
+export function minFloors(price: number): number {
+  if (!(price > 0)) return 0;
+  return Math.ceil((KURU.minOrderUsd * 1.03) / price / 100) * 100;
+}
+
 type Step = (label: string, hash?: Hash) => void;
 const walletFor = (account: LocalAccount) => createWalletClient({ account, chain: testnet, transport });
 const wait = async (hash: Hash) => {
@@ -106,10 +128,10 @@ async function fund(account: LocalAccount, token: Address, amount: bigint, label
  * Buy or sell `floors` on the book right now. The order takes what rests at `price` or better and cancels
  * the rest (immediate or cancel), so nothing is left hanging.
  */
-export async function kuruTrade(account: LocalAccount, side: "buy" | "sell", floors: number, price: number, v: KuruView, step: Step): Promise<Hash> {
+export async function kuruTrade(account: LocalAccount, side: "buy" | "sell", floors: number, price: number, usd: number, v: KuruView, step: Step): Promise<Hash> {
   const qty = BigInt(Math.round(floors * P));
   if (side === "buy") {
-    const need = floors * price * (1 + KURU.takerFee) * 1.01;
+    const need = usd * (1 + KURU.takerFee) * 1.01;
     if (v.usdcKuru < need) await fund(account, KURU.usdc, BigInt(Math.ceil((need - v.usdcKuru) * 1e6)), "Move test USDC to Kuru", step);
   } else if (v.floorsKuru < floors) {
     await fund(account, KURU.floor, BigInt(Math.ceil(floors - v.floorsKuru)) * 10n ** 18n, "Move your floors to Kuru", step);
