@@ -64,7 +64,7 @@ A floor is an ERC 20 token, so it can trade on an order book like any other asse
 
 So buying a floor on Kuru is never worse than minting one, and a holder can sell before the date.
 
-Why the keeper does not lose money doing this: the vault's mint price is its fair value plus a 10% spread (`spreadBps = 1000`). Asks sit just under the mint price, which is still about 9% above fair value. Bids sit below fair value. So the keeper sells above what a floor is worth and buys back below it, and a test asserts both (`keeper/test/kuru.test.ts`). The live book is on [/proof](https://floorline-app.vercel.app/proof). This runs on Monad testnet with a test dollar, on Kuru's older Router, because Spot V2 market creation is owner only. Run it with `npm run kuru` in `keeper/`.
+Why the keeper does not lose money doing this: the vault's mint price is its fair value plus a 10% spread (`spreadBps = 1000`). Asks sit just under the mint price, which is still about 9% above fair value. Bids sit below fair value. So the keeper sells above what a floor is worth and buys back below it, and a test asserts both (`keeper/test/kuru.test.ts`). **It is live on Kuru Spot V2.** Kuru's team created the FLOOR/USDC market on Monad testnet on 11 Oct (`0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38`). The keeper posted its quotes there, a second wallet bought 7,000 floors from the best ask, and the keeper replaced its quotes. The live book is on [/proof](https://floorline-app.vercel.app/proof), read from the market contract. Run the maker with `npm run kuru:v2` in `keeper/`. This is testnet, using Kuru's test USDC: Spot V2 is where Kuru asked new markets to be built. An earlier market on Kuru's older Router (`npm run kuru`) was the fallback before the listing.
 
 ## The app
 
@@ -154,7 +154,7 @@ Limits you should know:
 * **Size is small.** The vault holds a few dollars. This is a working product at demo scale, not a funded one.
 * **The hedge moved on chain on 11 Oct.** Until then the bot hedged through Perpl's trading API from the operator's own Perpl account (75+ real fills, listed on /proof), and the operator swept the result to the vault. Since 11 Oct the vault holds its own Perpl account and every hedge order goes through `HedgedFloorVault.hedge`, so the hedge money never leaves the vault. The API path is still in the keeper (`EXECUTION=api`).
 * **Chainlink CRE is simulated, not deployed to a DON.** The simulation forwarder does not verify signatures, so CRE reports are recorded as an *observed* volatility for anyone to compare. They never set the price. The keeper posts the pricing volatility, limited to a maximum step per update. The workflow can also settle expired series, but every settlement so far was done by the keeper.
-* **Kuru is on testnet, with a test dollar.** A floor token has a live two sided market on a Kuru order book there: a keeper quotes bids and asks around the vault's price and refills after fills. Kuru Spot V2 market creation is owner only; we asked Kuru's team on 9 Oct and they are checking on Monday 12 Oct. There is no Kuru market on mainnet.
+* **Kuru is on testnet.** A floor token has a live two sided market on Kuru Spot V2, created by Kuru's team on 11 Oct, quoted in Kuru's test USDC by a keeper that refills after fills. The floors traded there come from a testnet copy of the vault. There is no Kuru market on mainnet, where market creation is closed.
 * **The owner key has real power:** it can change pricing parameters, pause buys and settle late. There is no timelock or multisig yet.
 * **The keeper is one process.** If it stops, hedging and new series stop. Anyone can still settle an expired series in its window.
 * The contracts have had an internal review only. No external audit.
@@ -175,7 +175,7 @@ Limits you should know:
 | Agora | Mobile trading app. Passkey sign in, AUSD balance, floors paid and backed in AUSD, Perpl trades in the app. |
 | Perpl | Price, settlement oracle and hedge venue. An automated delta hedging bot: 75+ fills through Perpl's trading API, then moved on chain into a Perpl account the vault owns. The bot reads market data and candles from Perpl's API. |
 | Chainlink CRE | A workflow that computes MON's realised volatility from Perpl candles and writes it on chain as an independent check on the pricing input. |
-| Kuru | Floors as a new asset class on Kuru's order book: the vault mints, prices and settles them, and a keeper makes a two sided market in them on Kuru (testnet). |
+| Kuru | Floors as a new asset class on Kuru Spot V2: the vault mints, prices and settles them, and a keeper makes a two sided market in them on the FLOOR/USDC market Kuru's team created (testnet). |
 | Aurora Intents | Add money from Base, Arbitrum, Ethereum and more straight into the Monad account. |
 | Mera | The whole account layer. A passkey on the phone, no seed phrase, no extension. |
 | Envio | HyperIndex indexes every vault and volatility event for the proof page and history. |

@@ -152,3 +152,16 @@ Workflow config points at the v2 vault and `CreReceiver` `0x25541C10…6895`, wh
 | Kuru order book, protection/tUSD (older Router `0x7EFbE105…4630`) | `0x75E4f0ae3F8C1Be093eFe08818770d034d4103C8` |
 
 Note: some testnet addresses equal mainnet v2 addresses (same deployer and nonce, different chain).
+
+## Monad testnet, 2026-10-11: Kuru Spot V2 market
+
+| | Address |
+|---|---|
+| FLOOR/USDC market on Kuru Spot V2 (created by Kuru's team, `0xae140900…91f1`) | `0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38` |
+| Base: series 0 floor token | `0xDE19301578DA357e3D2260c29Dc51cc37621AADd` |
+| Quote: Kuru test USDC | `0xA402B424f392EAA05DBc8779e4502A1F6A96fEF1` |
+| Vault that mints and prices the floor | `0xc8EDB9e8E1E0e30951b14FD8BF45f06A9332F894` |
+| Kuru AccountCore (custody) | `0xdbaaDe7B42c95399bb1E9614D51B5B9e2cf78038` |
+| Maker (keeper), Kuru account 13 | `0xE2084643331b3061BcC2979B8508E5c63C171C6E` |
+
+Price precision 1e6, size precision 1e6, tick 1, minimum order 10 USDC, taker fee 0.07%, maker fee 0.04%.

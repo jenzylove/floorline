@@ -22,9 +22,15 @@ export interface Book {
   sizePrecision: number;
   tick: number;
   minSize: bigint;
+  minNotional?: number; // smallest order the market accepts, in quote units (Kuru V2: 10 USDC)
 }
 
 export const DEFAULTS: QuoteParams = { askSteps: [0.99, 1.04, 1.1], bidSteps: [0.97, 0.92, 0.86], sizeTokens: 250, spreadBps: 1000 };
+
+/** A level under the market's minimum order value would be rejected, so it is left out. */
+function tooSmall(price: number, book: Book, p: QuoteParams): boolean {
+  return book.minNotional !== undefined && (price / book.pricePrecision) * p.sizeTokens < book.minNotional;
+}
 
 /** Round to the tick grid: asks up, bids down, so rounding never crosses the intended price. */
 function onGrid(raw: number, tick: number, up: boolean): number {
@@ -47,6 +53,7 @@ export function ladder(mint: number, book: Book, haveTokens: number, haveQuote: 
   for (const m of p.askSteps) {
     if (tokens < p.sizeTokens) break;
     const price = onGrid(mint * m * book.pricePrecision, book.tick, true);
+    if (tooSmall(price, book, p)) continue;
     if (asks.length && price <= asks[asks.length - 1].price) continue;
     asks.push({ price, size });
     tokens -= p.sizeTokens;
@@ -58,6 +65,7 @@ export function ladder(mint: number, book: Book, haveTokens: number, haveQuote: 
   for (const m of p.bidSteps) {
     const price = onGrid(value * m * book.pricePrecision, book.tick, false);
     const cost = (price / book.pricePrecision) * p.sizeTokens;
+    if (tooSmall(price, book, p)) continue;
     if (quote < cost) break;
     if (price >= lowestAsk) continue; // never cross our own ask
     if (bids.length && price >= bids[bids.length - 1].price) continue;

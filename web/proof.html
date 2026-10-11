@@ -46,8 +46,8 @@
   <div class="feed" id="hedge"></div>
 
   <div class="hair"></div>
-  <h3>A live market on Kuru's order book</h3>
-  <p class="mute" style="font-size:15px;margin-top:6px">Monad testnet, with a test dollar. A keeper reads the vault's price for a floor and keeps bids and asks resting around it, replacing them when the price moves or an order is filled. Read from the book contract right now.</p>
+  <h3>A live market on Kuru Spot V2</h3>
+  <p class="mute" style="font-size:15px;margin-top:6px">FLOOR/USDC on Kuru's Spot V2 order book, a market Kuru's team created for Floorline on Monad testnet. A keeper reads the vault's price for a floor and keeps bids and asks resting around it, replacing them when the price moves or an order is filled. Read from the market contract right now.</p>
   <div class="split" style="margin-top:14px;gap:36px">
     <div><div class="label">Bids, to buy a floor back</div><div id="kuruBids"></div></div>
     <div><div class="label">Asks, to sell a floor</div><div id="kuruAsks"></div></div>
@@ -143,7 +143,11 @@ const MILESTONES = [
   ["CRE", "Chainlink CRE run on v2: observed volatility 112.03%", "0x324fb42045eeb4c9f78c1a61986260a814e10926ed02e9f3b16b3f130e004440"],
   ["Resale", "Floor token resold on a Monday Trade pool: 17.744 tokens for 0.01 AUSD", "0xceb08ec71266efc179e7c722481330ca83e9506c881808f526f666131fa0ed77"],
   ["Pool", "Monday Trade pool for the 7 day floor token, created at the vault's price", "0xed9b305640820cad828f89c9c75ca5552be9e4e805b2500562337c29f4c04814"],
-  ["Kuru", "Testnet: 1,500 protection tokens bought on Kuru's order book at 0.00229 each", "0xdd36ddec456380484620db6abf0eb224551ae555c08b123dc1ee0eab2f5385dd", "testnet"],
+  ["Kuru V2", "Kuru's team registers the FLOOR/USDC market on Spot V2 (testnet)", "0xae140900c3ef18c2564895ad7a96fa60d7102b81dee0f5536af0454b8dd191f1", "testnet"],
+  ["Kuru V2", "The keeper posts three bids and three asks around the vault's price", "0x7cba244bc9a089e8495f7a83ff04bea379727134207909e3f47a81d491f9c4ba", "testnet"],
+  ["Kuru V2", "A second wallet buys 7,000 floors from the keeper's best ask", "0x4c8111764ce00d4a2c010a6c56fece86e110560072246f6adf163c58a0ee9274", "testnet"],
+  ["Kuru V2", "The keeper sees the fill and replaces its quotes", "0x192c5148fe994d902f4eb41f75f24c55fea83c452f8671f3962f994eaaeda542", "testnet"],
+  ["Kuru", "Older Router, testnet: 1,500 protection tokens bought on Kuru's order book at 0.00229 each", "0xdd36ddec456380484620db6abf0eb224551ae555c08b123dc1ee0eab2f5385dd", "testnet"],
   ["App", "From a phone, passkey account: 13 AUSD deposited to the vault", "0xb4ddf999721158007efd2a7890d26d2c5cb64c08437cf3ba94c65a046ee1baaa"],
   ["App", "From a phone: Perpl account opened with 10 AUSD", "0x1391a70f636c0c3e2a186921c37f04a8768ed82bba19f275eb713c1388170a62"],
   ["App", "From a phone: a floor bought on 5 MON", "0xa156ae2574f186b1e4d05143c6fd393f136f0ba2140487a1344d8bc759cb4e9a"],

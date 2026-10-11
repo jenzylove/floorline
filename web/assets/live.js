@@ -165,37 +165,28 @@ export function shortlist(series, spot) {
   return { day, week, all: [...day, ...week] };
 }
 
-// The Floorline market on Kuru's order book (Monad testnet). A keeper quotes both sides around the vault's price.
+// The Floorline market on Kuru Spot V2 (Monad testnet), created by Kuru's team. A keeper quotes both sides
+// around the vault's own price.
 export const KURU = {
   rpc: "https://testnet-rpc.monad.xyz",
-  book: "0x75E4f0ae3F8C1Be093eFe08818770d034d4103C8",
-  vault: "0x25541C105A727BFc266509cCdbA1327F2c0a6895",
+  book: "0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38",
+  vault: "0xc8EDB9e8E1E0e30951b14FD8BF45f06A9332F894",
   explorer: "https://testnet.monadscan.com",
 };
 const testnet = createPublicClient({ transport: http(KURU.rpc) });
-const kuruAbi = parseAbi(["function getL2Book() view returns (bytes)"]);
+const kuruAbi = parseAbi(["function getL2Book(uint256 levels) view returns (uint32[] bidPrices, uint96[] bidSizes, uint32[] askPrices, uint96[] askSizes)"]);
 const kuruVaultAbi = parseAbi(["function quote(uint256 seriesId, uint256 amount) view returns (uint256)"]);
 
-/** Bids and asks resting on the book right now, and the vault's own price for one token. */
+/** Bids and asks resting on the book right now, and the vault's own price for one floor. Prices and sizes use 6 decimals. */
 export async function kuruBook() {
-  const [data, premium] = await Promise.all([
-    testnet.readContract({ address: KURU.book, abi: kuruAbi, functionName: "getL2Book" }),
+  const [[bidPrices, bidSizes, askPrices, askSizes], premium] = await Promise.all([
+    testnet.readContract({ address: KURU.book, abi: kuruAbi, functionName: "getL2Book", args: [10n] }),
     testnet.readContract({ address: KURU.vault, abi: kuruVaultAbi, functionName: "quote", args: [0n, 1000n * 10n ** 18n] }),
   ]);
-  // layout: block number, then (price, size) pairs for bids until a zero price, then the same for asks
-  const word = (i) => BigInt("0x" + data.slice(2 + i * 64, 2 + (i + 1) * 64));
-  const words = (data.length - 2) / 64;
-  const side = (i) => {
-    const out = [];
-    while (i + 1 < words) {
-      const price = word(i);
-      if (price === 0n) return [out, i + 1];
-      out.push({ price: Number(price) / 1e6, size: Number(word(i + 1)) / 1e6 });
-      i += 2;
-    }
-    return [out, i];
+  const side = (prices, sizes) => prices.map((p, i) => ({ price: Number(p) / 1e6, size: Number(sizes[i]) / 1e6 })).filter((o) => o.size > 0);
+  return {
+    bids: side(bidPrices, bidSizes).sort((a, b) => b.price - a.price),
+    asks: side(askPrices, askSizes).sort((a, b) => a.price - b.price),
+    mint: Number(premium) / 1e6 / 1000,
   };
-  const [bids, next] = side(1);
-  const [asks] = side(next);
-  return { bids: bids.sort((a, b) => b.price - a.price), asks: asks.sort((a, b) => a.price - b.price), mint: Number(premium) / 1e6 / 1000 };
 }

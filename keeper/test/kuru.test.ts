@@ -53,6 +53,19 @@ describe("kuru ladder", () => {
   });
 });
 
+describe("minimum order value (Kuru V2)", () => {
+  const v2 = { ...book, minNotional: 10 };
+  it("leaves out levels the market would reject for being under 10 USDC", () => {
+    expect(ladder(mint, v2, 100_000, 1_000, { ...DEFAULTS, sizeTokens: 250 })).toEqual({ bids: [], asks: [] });
+  });
+  it("quotes every level when the size clears the minimum", () => {
+    const big = ladder(mint, v2, 100_000, 1_000, { ...DEFAULTS, sizeTokens: 9_000 });
+    expect(big.asks).toHaveLength(3);
+    expect(big.bids).toHaveLength(3);
+    for (const l of [...big.asks, ...big.bids]) expect((l.price / 1e6) * 9_000).toBeGreaterThanOrEqual(10);
+  });
+});
+
 describe("maker economics", () => {
   it("every ask is above the vault's value before its spread, so the maker never sells below value", () => {
     const { asks } = ladder(mint, book, 1500, 40);
