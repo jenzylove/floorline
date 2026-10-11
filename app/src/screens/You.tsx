@@ -1,9 +1,10 @@
 import { friendly } from "../errors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import type { LocalAccount } from "viem";
 import type { Holding } from "../data";
 import { redeemProtection } from "../tx";
+import { loadActivity, onActivity, type Entry } from "../activity";
 import { AddMoney } from "./AddMoney";
 import { Send } from "./Send";
 import { Big, Body, Button, C, Card, F, Label, Row, Segment, Title, Trail, price, untilText, usd } from "../ui";
@@ -15,6 +16,16 @@ export function You({ account, ausd, mon, held, pref, onPref, onDone, onSignOut 
   const [busy, setBusy] = useState<number>();
   const [err, setErr] = useState<string>();
   const now = Date.now() / 1000;
+  const [recent, setRecent] = useState<Entry[]>([]);
+  useEffect(() => {
+    const read = () => loadActivity(account.address).then((l) => setRecent([...l]));
+    read();
+    return onActivity(read);
+  }, [account.address]);
+  const ago = (ms: number) => {
+    const m = Math.floor((Date.now() - ms) / 60000);
+    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} d ago`;
+  };
 
   async function collect(h: Holding) {
     setBusy(h.series.id);
@@ -48,6 +59,19 @@ export function You({ account, ausd, mon, held, pref, onPref, onDone, onSignOut 
       <Card style={{ marginTop: 14 }}>
         <Send account={account} ausd={ausd} mon={mon} onDone={onDone} />
       </Card>
+
+      {recent.length > 0 && (
+        <View style={{ marginTop: 22 }}>
+          <Label>Recent activity</Label>
+          {recent.slice(0, 8).map((e) => (
+            <Pressable key={e.hash} onPress={() => Linking.openURL(`https://monadscan.com/tx/${e.hash}`)} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.line }}>
+              <Text style={{ fontFamily: F.medium, fontSize: 15, color: C.ink }}>{e.label}</Text>
+              <Text style={{ fontFamily: F.body, fontSize: 13, color: C.mute }}>{ago(e.at)} ↗</Text>
+            </Pressable>
+          ))}
+          <Body muted style={{ fontSize: 13, marginTop: 6 }}>What you did from this phone. Tap one to see it on Monad.</Body>
+        </View>
+      )}
 
       <Label style={{ marginTop: 22 }}>Your floors</Label>
       {held.length === 0 ? (

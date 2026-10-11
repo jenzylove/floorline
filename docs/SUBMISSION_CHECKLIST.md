@@ -15,7 +15,7 @@ Agora, Best Mobile Trading App (Track 01):
 - [x] Mobile app. Android APK on the GitHub release
 - [x] Authenticates via Mera passkey. Account created on a real phone, 9 Oct
 - [x] Holds and displays an AUSD balance. 2.000341 AUSD after the 10 Oct deposit
-- [x] Executes trades through Perpl in the app. Done on a real phone, 11 Oct: Perpl account #5455 opened from the passkey account, one trade opened and closed
+- [x] Executes trades through Perpl in the app. Done on a real phone, 11 Oct, from the passkey account: Perpl account #5455 opened `0x1391a70f…0a62`, trade opened `0xa06ca86f…192f`, closed `0x91e17cc5…85d7`
 - [ ] Demo video ≤ 2 min: passkey login, AUSD balance, at least one Perpl trade
 - [x] Write-up of core features. README, "The app"
 

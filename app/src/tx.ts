@@ -1,4 +1,5 @@
 import { createWalletClient, maxUint256, parseUnits, type Address, type Hash, type LocalAccount } from "viem";
+import { remember } from "./activity";
 import { client, monad, transport } from "./chain";
 import { ADDR, MON_MARKET, ORDER, erc20Abi, perplAbi, vaultAbi } from "./contracts";
 import { unitsToWei } from "./data";
@@ -48,6 +49,7 @@ export async function buyProtection(account: LocalAccount, seriesId: number, uni
     gas: GAS.buy,
   });
   step("Buy protection", hash);
+  remember(account.address, "Bought a floor", hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -62,6 +64,7 @@ export async function redeemProtection(account: LocalAccount, seriesId: number, 
     gas: GAS.redeem,
   });
   step("Collect payout", hash);
+  remember(account.address, "Collected a payout", hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -72,6 +75,7 @@ export async function depositEarn(account: LocalAccount, ausd: number, step: Ste
   step("Deposit");
   const hash = await walletFor(account).writeContract({ address: ADDR.vault, abi: vaultAbi, functionName: "deposit", args: [assets, account.address], gas: GAS.deposit });
   step("Deposit", hash);
+  remember(account.address, `Put ${ausd} AUSD into Earn`, hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -87,6 +91,7 @@ export async function withdrawEarn(account: LocalAccount, ausd: number, step: St
     gas: GAS.withdraw,
   });
   step("Withdraw", hash);
+  remember(account.address, `Took ${ausd} AUSD out of Earn`, hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -99,6 +104,7 @@ export async function perplOpenAccount(account: LocalAccount, ausd: number, step
   step("Open Perpl account");
   const hash = await walletFor(account).writeContract({ address: ADDR.perpl, abi: perplAbi, functionName: "createAccount", args: [amount], gas: GAS.perplOpen });
   step("Open Perpl account", hash);
+  remember(account.address, "Opened trading account", hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -145,6 +151,7 @@ export async function perplOrder(
     gas: GAS.perplOrder,
   });
   step("Send order to Perpl", hash);
+  remember(account.address, `${{ openLong: "Went long", openShort: "Went short", closeLong: "Closed long", closeShort: "Closed short" }[kind]} ${lots} MON`, hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -163,6 +170,7 @@ export async function perplMove(account: LocalAccount, dir: "in" | "out", ausd: 
     gas: GAS.perplMove,
   });
   step(label, hash);
+  remember(account.address, label, hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
@@ -179,6 +187,7 @@ export async function sendOut(account: LocalAccount, token: "AUSD" | "MON", to: 
       ? await w.sendTransaction({ to, value: parseUnits(amount.toFixed(18), 18), gas: 30_000n })
       : await w.writeContract({ address: ADDR.ausd, abi: erc20Abi, functionName: "transfer", args: [to, toUnits6(amount)], gas: GAS.send });
   step(label, hash);
+  remember(account.address, label, hash).catch(() => undefined);
   await wait(hash);
   return hash;
 }
