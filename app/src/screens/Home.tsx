@@ -1,16 +1,29 @@
-import { Text, View, useWindowDimensions } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import type { Holding, Market } from "../data";
 import { Action, Big, Body, C, Card, F, Glow, Label, price, untilText, usd } from "../ui";
 
 type Go = (tab: "Protect" | "Earn" | "Trade" | "Wallet") => void;
 
 /** Home: what you have, what you can do, and the floors you hold. Plain words, one question. */
-export function Home({ ausd, mon, mkt, held, earnValue, go }: { ausd: number; mon: number; mkt?: Market; held: Holding[]; earnValue: number; go: Go }) {
+export function Home({ ausd, mon, mkt, held, earnValue, tradeValue, go }: { ausd: number; mon: number; mkt?: Market; held: Holding[]; earnValue: number; tradeValue: number; go: Go }) {
   const { width } = useWindowDimensions();
   const now = Date.now() / 1000;
   const active = held.filter((h) => !h.series.settled);
   const toCollect = held.filter((h) => h.series.settled && h.payout > 0);
-  const total = ausd + earnValue;
+  const total = ausd + earnValue + tradeValue;
+  // the short guide stays until the person says they have it
+  const [guide, setGuide] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === "web") return setGuide(true);
+    SecureStore.getItemAsync("fl-guide-seen").then((v) => setGuide(v !== "1")).catch(() => setGuide(true));
+  }, []);
+  const gotIt = () => {
+    setGuide(false);
+    if (Platform.OS !== "web") SecureStore.setItemAsync("fl-guide-seen", "1").catch(() => undefined);
+  };
+  const empty = total < 0.5 && held.length === 0;
 
   return (
     <View>
@@ -19,7 +32,7 @@ export function Home({ ausd, mon, mkt, held, earnValue, go }: { ausd: number; mo
         <Label>Your money</Label>
         <Big size={54} style={{ marginTop: 4 }}>{usd(total)}</Big>
         <Text style={{ fontFamily: F.body, fontSize: 15, color: C.ink2, marginTop: 6 }}>
-          {usd(ausd)} AUSD in your account{earnValue > 0 ? ` · ${usd(earnValue)} earning` : ""} · {mon.toFixed(2)} MON for fees
+          {usd(ausd)} in your wallet{earnValue > 0 ? ` · ${usd(earnValue)} earning` : ""}{tradeValue > 0 ? ` · ${usd(tradeValue)} in trading` : ""} · {mon.toFixed(2)} MON for fees
         </Text>
         {mkt && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 14 }}>
@@ -39,11 +52,41 @@ export function Home({ ausd, mon, mkt, held, earnValue, go }: { ausd: number; mo
         </Card>
       )}
 
+      {guide && (
+        <Card style={{ marginBottom: 16 }}>
+          <Text style={{ fontFamily: F.semi, fontSize: 18, color: C.ink }}>New here? Three things you can do</Text>
+          {[
+            ["Protect", "Worried MON will drop? Pay once and pick a price. If MON ends below it, you get the difference back in dollars. If it rises, you keep the gain."],
+            ["Earn", "Have dollars sitting idle? Put AUSD in and collect what people pay for their protection."],
+            ["Trade", "Have a view? Bet on MON going up or down on Perpl."],
+          ].map(([k, t]) => (
+            <View key={k} style={{ marginTop: 12 }}>
+              <Text style={{ fontFamily: F.semi, fontSize: 15, color: C.limeInk }}>{k}</Text>
+              <Body style={{ fontSize: 14, marginTop: 2 }}>{t}</Body>
+            </View>
+          ))}
+          <Body muted style={{ fontSize: 13, marginTop: 12 }}>AUSD is a digital dollar: 1 AUSD is 1 US dollar. MON is Monad's coin, and a little of it pays the network fees.</Body>
+          <Pressable onPress={gotIt} style={{ marginTop: 14, alignSelf: "flex-start", backgroundColor: C.ink, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 20 }}>
+            <Text style={{ fontFamily: F.semi, fontSize: 15, color: C.onInk }}>Got it</Text>
+          </Pressable>
+        </Card>
+      )}
+
+      {empty && (
+        <Card tint="lime" style={{ marginBottom: 16 }}>
+          <Text style={{ fontFamily: F.semi, fontSize: 17, color: C.ink }}>Start by adding money</Text>
+          <Body style={{ marginTop: 4, fontSize: 14 }}>Bring dollars in from Base, Arbitrum, Ethereum and more. It lands here in about a minute.</Body>
+          <Pressable onPress={() => go("Wallet")} style={{ marginTop: 12, alignSelf: "flex-start", backgroundColor: C.ink, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 20 }}>
+            <Text style={{ fontFamily: F.semi, fontSize: 15, color: C.onInk }}>Add money</Text>
+          </Pressable>
+        </Card>
+      )}
+
       <Label style={{ marginTop: 6 }}>What do you want to do?</Label>
       <View style={{ marginTop: 6 }}>
-        <Action title="Protect my MON" detail="Pay once, set a floor, keep the upside" onPress={() => go("Protect")} icon={<Text style={{ fontSize: 20, color: C.ink }}>⛉</Text>} />
-        <Action title="Earn on my AUSD" detail="Back the floors people buy and keep what they pay" onPress={() => go("Earn")} icon={<Text style={{ fontSize: 20, color: C.ink }}>↗</Text>} />
-        <Action title="Trade MON" detail="Long or short on Perpl, from your own account" onPress={() => go("Trade")} icon={<Text style={{ fontSize: 20, color: C.ink }}>⇅</Text>} />
+        <Action title="Protect my MON" detail="Pay once so your MON can't lose below a price you pick" onPress={() => go("Protect")} icon={<Text style={{ fontSize: 20, color: C.ink }}>⛉</Text>} />
+        <Action title="Earn on my AUSD" detail="Put dollars in and collect what protectors pay" onPress={() => go("Earn")} icon={<Text style={{ fontSize: 20, color: C.ink }}>↗</Text>} />
+        <Action title="Trade MON" detail="Bet on MON going up or down, on Perpl" onPress={() => go("Trade")} icon={<Text style={{ fontSize: 20, color: C.ink }}>⇅</Text>} />
         <Action title="Add money" detail="From Base, Arbitrum, Ethereum and more" onPress={() => go("Wallet")} icon={<Text style={{ fontSize: 20, color: C.ink }}>+</Text>} />
       </View>
 

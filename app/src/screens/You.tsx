@@ -1,3 +1,4 @@
+import { friendly } from "../errors";
 import { useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import type { LocalAccount } from "viem";
@@ -25,7 +26,7 @@ export function You({ account, ausd, mon, held, pref, onPref, onDone, onSignOut 
       );
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message.split("\n")[0] : String(e));
+      setErr(friendly(e));
     } finally {
       setBusy(undefined);
     }

@@ -1,3 +1,4 @@
+import { friendly } from "../errors";
 import { useEffect, useMemo, useState } from "react";
 import { Text, TextInput, View, useWindowDimensions } from "react-native";
 import type { LocalAccount } from "viem";
@@ -73,7 +74,7 @@ export function Protect({ account, series, mkt, monHeld, ausd, demoBuyer, onDone
       setDone(true);
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message.split("\n")[0] : String(e));
+      setErr(friendly(e));
     } finally {
       setBusy(false);
     }
@@ -145,7 +146,14 @@ export function Protect({ account, series, mkt, monHeld, ausd, demoBuyer, onDone
               <Text style={{ fontFamily: F.body, fontSize: 14, color: C.ink2, marginTop: 8 }}>
                 {Math.abs(below) < 0.005 ? "At today's price" : below > 0 ? `${Math.round(below * 100)}% below today's price` : `${Math.round(-below * 100)}% above today's price`} · ends in {untilText(chosen.expiry - now)}
               </Text>
-              {q && "error" in q && <Body style={{ color: C.below, marginTop: 6, fontSize: 14 }}>{q.error}</Body>}
+              {spot > 0 && (
+                <View style={{ marginTop: 10, backgroundColor: C.limeSoft, borderRadius: 14, padding: 12 }}>
+                  <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.ink }}>
+                    If MON falls 30% by then, this floor pays you <Text style={{ fontFamily: F.semi, color: C.limeInk }}>{usd(Math.max(0, chosen.strike - spot * 0.7) * units)}</Text>. If MON goes up, you keep the gain and the floor simply ends.
+                  </Text>
+                </View>
+              )}
+              {q && "error" in q && <Body style={{ color: C.below, marginTop: 6, fontSize: 14 }}>{/0x|https?:|Error|viem/.test(q.error) || q.error.length > 110 ? "Can't price this floor right now. Trying again in a few seconds." : q.error}</Body>}
             </Card>
           ) : null}
           <View style={{ flexDirection: "row", gap: 10 }}>

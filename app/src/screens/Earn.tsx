@@ -1,3 +1,4 @@
+import { friendly } from "../errors";
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import type { LocalAccount } from "viem";
@@ -12,6 +13,7 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
   const [steps, setSteps] = useState<{ label: string; hash?: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
+  const [note, setNote] = useState<string>();
   const [how, setHow] = useState(false);
   const n = Number(amt);
   const max = mode === "in" ? ausd : (v?.myMaxWithdraw ?? 0);
@@ -19,15 +21,17 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
   async function run() {
     setBusy(true);
     setErr(undefined);
+    setNote(undefined);
     setSteps([]);
     const step = (label: string, hash?: string) => setSteps((st) => (hash ? st.map((x) => (x.label === label && !x.hash ? { label, hash } : x)) : [...st, { label }]));
     try {
       if (mode === "in") await depositEarn(account, n, step);
       else await withdrawEarn(account, n, step);
+      setNote(mode === "in" ? `${usd(n)} is in. It starts earning now and there is nothing else to do. Check back to watch it grow.` : `${usd(n)} is back in your wallet.`);
       setAmt("");
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message.split("\n")[0] : String(e));
+      setErr(friendly(e));
     } finally {
       setBusy(false);
     }
@@ -38,9 +42,29 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
       <Title accent="pay you.">Let the floors people buy</Title>
       <Body muted style={{ marginTop: 10 }}>Put in AUSD. It backs the floors people buy, and you keep what they pay.</Body>
 
+      <View style={{ marginTop: 16, gap: 10 }}>
+        {[
+          ["1", "You put in AUSD."],
+          ["2", "People pay to protect their MON. What they pay is shared between depositors like you."],
+          ["3", "Your balance here grows as floors are sold. Take it out whenever you like."],
+        ].map(([n, t]) => (
+          <View key={n} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+            <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: C.limeSoft, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontFamily: F.semi, fontSize: 13, color: C.limeInk }}>{n}</Text>
+            </View>
+            <Body style={{ flex: 1, fontSize: 15 }}>{t}</Body>
+          </View>
+        ))}
+      </View>
+
       <Card style={{ marginTop: 20 }}>
         <Label>Your deposit is worth</Label>
         <Big size={46} style={{ marginTop: 2 }}>{v ? usd(v.myValue) : "…"}</Big>
+        {v && v.myValue > 0 && v.totalAssets > 0 && (
+          <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.limeInk, marginTop: 2 }}>
+            Earning. You hold {Math.min(100, (v.myValue / v.totalAssets) * 100).toFixed(0)}% of the vault, so you get that share of what buyers pay.
+          </Text>
+        )}
         <Segment items={["in", "out"]} value={mode} onChange={(m) => { setMode(m); setAmt(""); }} render={(m) => (m === "in" ? "Put in" : "Take out")} />
         <TextInput
           value={amt}
@@ -56,6 +80,7 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
           </Text>
         </Pressable>
         <Button title={mode === "in" ? "Put in" : "Take out"} onPress={run} disabled={!(n > 0 && n <= max + 1e-9)} busy={busy} />
+        {note && <Body style={{ color: C.limeInk, marginTop: 10, fontFamily: F.semi }}>{note}</Body>}
         <Trail steps={steps} />
         {err && <Body style={{ color: C.below, marginTop: 8 }}>{err}</Body>}
       </Card>

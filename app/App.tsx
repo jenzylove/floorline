@@ -8,7 +8,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import type { Address, LocalAccount } from "viem";
 import { client } from "./src/chain";
 import { ADDR, vaultAbi } from "./src/contracts";
-import { allSeries, holdings, market, vault, wallet, type Holding, type Market, type SeriesView, type VaultView } from "./src/data";
+import { allSeries, holdings, market, perplAccount, vault, wallet, type Holding, type Market, type SeriesView, type VaultView } from "./src/data";
 import { Launch } from "./src/Launch";
 import { Earn } from "./src/screens/Earn";
 import { Home } from "./src/screens/Home";
@@ -86,6 +86,7 @@ function App({ onReady }: { onReady: () => void }) {
   const [v, setV] = useState<VaultView>();
   const [bal, setBal] = useState({ ausd: 0, mon: 0 });
   const [held, setHeld] = useState<Holding[]>([]);
+  const [trading, setTrading] = useState(0);
   const [demoBuyer, setDemoBuyer] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -106,6 +107,8 @@ function App({ onReady }: { onReady: () => void }) {
       setBal(b);
       setDemoBuyer(demo);
       setHeld(await holdings(me, s));
+      // money moved to Perpl is still the person's money: free balance plus what is set aside in a trade
+      perplAccount(me).then((p) => setTrading(p ? p.balance + (p.position ? p.position.deposit + p.position.pnl : 0) : 0)).catch(() => undefined);
       setError(undefined);
     } catch (e) {
       setError(describeError(e));
@@ -199,7 +202,7 @@ function App({ onReady }: { onReady: () => void }) {
         {!mkt ? (
           <ActivityIndicator color={C.ink} style={{ marginTop: 80 }} />
         ) : tab === "Home" ? (
-          <Home ausd={bal.ausd} mon={bal.mon} mkt={mkt} held={held} earnValue={v?.myValue ?? 0} go={setTab} />
+          <Home ausd={bal.ausd} mon={bal.mon} mkt={mkt} held={held} earnValue={v?.myValue ?? 0} tradeValue={trading} go={setTab} />
         ) : tab === "Protect" ? (
           <Protect {...tabProps} series={series} mkt={mkt} monHeld={bal.mon} ausd={bal.ausd} demoBuyer={demoBuyer} />
         ) : tab === "Earn" ? (

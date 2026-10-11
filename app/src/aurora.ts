@@ -64,8 +64,16 @@ export async function quoteDeposit(src: Source, receive: keyof typeof MONAD_ASSE
     deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     referral: "floorline",
   };
-  const res = await fetch(`${ONECLICK}/quote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const j = (await res.json()) as { quote?: { depositAddress: string; amountInFormatted: string; amountOutFormatted: string; timeEstimate: number; deadline: string }; message?: string };
+  type Reply = { quote?: { depositAddress: string; amountInFormatted: string; amountOutFormatted: string; timeEstimate: number; deadline: string }; message?: string };
+  const ask = () => fetch(`${ONECLICK}/quote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  let res = await ask();
+  let j = (await res.json()) as Reply;
+  // the route finder sometimes has no quote for a moment; one more try a second later usually has one
+  if (!j.quote?.depositAddress) {
+    await new Promise((r) => setTimeout(r, 1500));
+    res = await ask();
+    j = (await res.json()) as Reply;
+  }
   if (!res.ok || !j.quote?.depositAddress) throw new Error(j.message ?? `1Click quote HTTP ${res.status}`);
   const q = j.quote;
   return { depositAddress: q.depositAddress, amountIn: q.amountInFormatted, amountOut: q.amountOutFormatted, timeEstimate: q.timeEstimate, deadline: q.deadline };

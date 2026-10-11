@@ -1,3 +1,4 @@
+import { friendly } from "../errors";
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { isAddress, type Address, type LocalAccount } from "viem";
@@ -32,7 +33,7 @@ export function Send({ account, ausd, mon, onDone }: { account: LocalAccount; au
       setAmt("");
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message.split("\n")[0] : String(e));
+      setErr(friendly(e));
     } finally {
       setBusy(false);
     }

@@ -1,3 +1,4 @@
+import { friendly } from "./errors";
 import { createPasskeyWithPrfOutput, createSecp256k1SigningSession, getPasskeyPrfOutput, isMeraError } from "@category-labs/mera";
 import { reactNativeWebAuthnClient } from "@category-labs/mera/react-native-webauthn-client";
 import { toViemAccount } from "@category-labs/mera/viem";
@@ -50,9 +51,5 @@ export async function signIn(): Promise<Session> {
 }
 
 export function describeError(e: unknown): string {
-  if (isMeraError(e)) return `${e.code}: ${e.message}`;
-  const msg = e instanceof Error ? e.message : String(e);
-  // a network failure is the phone's connection, not something the person can read a stack trace for
-  if (/HTTP request failed|fetch failed|Network request failed|UnknownHost|timed out|took too long/i.test(msg)) return "Can't reach Monad right now. Check your connection. The app keeps trying.";
-  return msg.split("\n")[0].slice(0, 180);
+  return friendly(e);
 }

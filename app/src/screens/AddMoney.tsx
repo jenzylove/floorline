@@ -1,3 +1,4 @@
+import { friendly } from "../errors";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -36,7 +37,7 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
         setList(l);
         setChain(l.find((x) => x.chain === "Base")?.chain ?? l[0]?.chain);
       })
-      .catch((e) => setLoadErr(e instanceof Error ? e.message : String(e)));
+      .catch((e) => setLoadErr(friendly(e)));
   };
   useEffect(() => {
     loadSources();
@@ -83,7 +84,7 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
       setDep(await quoteDeposit(src, receive, Number(amount), account.address, refund as Address));
       setStatus("PENDING_DEPOSIT");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(friendly(e));
     } finally {
       setBusy(false);
     }
@@ -98,7 +99,7 @@ export function AddMoney({ account, mon, onDone }: { account: LocalAccount; mon:
       setUsdc(await usdcBalance(account.address));
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message.split("\n")[0] : String(e));
+      setErr(friendly(e));
     } finally {
       setBusy(false);
     }
