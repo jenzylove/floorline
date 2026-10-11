@@ -87,6 +87,7 @@ function App({ onReady }: { onReady: () => void }) {
   const [bal, setBal] = useState({ ausd: 0, mon: 0 });
   const [held, setHeld] = useState<Holding[]>([]);
   const [trading, setTrading] = useState(0);
+  const [loaded, setLoaded] = useState(false); // the first full read of the account has landed
   const [demoBuyer, setDemoBuyer] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -94,21 +95,24 @@ function App({ onReady }: { onReady: () => void }) {
     if (!session) return;
     const me = session.account.address;
     try {
-      const [m, s, vv, b, demo] = await Promise.all([
+      const [m, s, vv, b, demo, p] = await Promise.all([
         market(),
         allSeries(),
         vault(me),
         wallet(me),
         client.readContract({ address: ADDR.vault, abi: vaultAbi, functionName: "isDemoBuyer", args: [me] }),
+        // money moved to Perpl is still the person's money: free balance plus what is set aside in a trade
+        perplAccount(me).catch(() => undefined),
       ]);
       setMkt(m);
       setSeries(s);
       setV(vv);
       setBal(b);
       setDemoBuyer(demo);
-      setHeld(await holdings(me, s));
-      // money moved to Perpl is still the person's money: free balance plus what is set aside in a trade
-      perplAccount(me).then((p) => setTrading(p ? p.balance + (p.position ? p.position.deposit + p.position.pnl : 0) : 0)).catch(() => undefined);
+      const h = await holdings(me, s);
+      setTrading(p ? p.balance + (p.position ? p.position.deposit + p.position.pnl : 0) : 0);
+      setHeld(h);
+      setLoaded(true);
       setError(undefined);
     } catch (e) {
       setError(describeError(e));
@@ -135,11 +139,16 @@ function App({ onReady }: { onReady: () => void }) {
     }
   }
 
+  const [fontsLate, setFontsLate] = useState(false);
   useEffect(() => {
-    if (fontsLoaded) onReady();
-  }, [fontsLoaded]);
+    const t = setTimeout(() => setFontsLate(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (fontsLoaded || fontsLate) onReady();
+  }, [fontsLoaded, fontsLate]);
 
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: "#121410" }} />;
+  if (!fontsLoaded && !fontsLate) return <View style={{ flex: 1, backgroundColor: "#121410" }} />;
 
   if (!session) {
     return (
@@ -202,7 +211,7 @@ function App({ onReady }: { onReady: () => void }) {
         {!mkt ? (
           <ActivityIndicator color={C.ink} style={{ marginTop: 80 }} />
         ) : tab === "Home" ? (
-          <Home ausd={bal.ausd} mon={bal.mon} mkt={mkt} held={held} earnValue={v?.myValue ?? 0} tradeValue={trading} go={setTab} />
+          <Home ausd={bal.ausd} mon={bal.mon} mkt={mkt} held={held} earnValue={v?.myValue ?? 0} tradeValue={trading} loaded={loaded} go={setTab} />
         ) : tab === "Protect" ? (
           <Protect {...tabProps} series={series} mkt={mkt} monHeld={bal.mon} ausd={bal.ausd} demoBuyer={demoBuyer} />
         ) : tab === "Earn" ? (

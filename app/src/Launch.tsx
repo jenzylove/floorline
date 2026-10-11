@@ -6,7 +6,8 @@ import Svg, { Path } from "react-native-svg";
 const INK = "#121410";
 const BONE = "#f4f4ee";
 const LIME = "#b8e62e";
-const MIN_MS = 1300;
+const MIN_MS = 1600;
+const MAX_MS = 6000; // whatever happens underneath, the launch never stays up longer than this
 
 /** Opening moment: the price line settles in, the floor draws under it, then the app fades up. */
 export function Launch({ ready }: { ready: boolean }) {
@@ -40,9 +41,14 @@ export function Launch({ ready }: { ready: boolean }) {
     return () => clearTimeout(t);
   }, [ready, out]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setGone(true), MAX_MS);
+    return () => clearTimeout(t);
+  }, []);
+
   if (gone) return null;
   return (
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: INK, alignItems: "center", justifyContent: "center", opacity: out }]}>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: INK, alignItems: "center", justifyContent: "center", opacity: out, zIndex: 1000, elevation: 1000 }]}>
       <Animated.View style={{ opacity: line, transform: [{ translateY: line.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         <Svg width={132} height={62} viewBox="8 10 48 22">
           <Path d="M12 27 L22 21 L31 30 L41 15 L52 23" fill="none" stroke={BONE} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />

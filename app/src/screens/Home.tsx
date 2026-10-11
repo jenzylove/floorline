@@ -7,7 +7,7 @@ import { Action, Big, Body, C, Card, F, Glow, Label, price, untilText, usd } fro
 type Go = (tab: "Protect" | "Earn" | "Trade" | "Wallet") => void;
 
 /** Home: what you have, what you can do, and the floors you hold. Plain words, one question. */
-export function Home({ ausd, mon, mkt, held, earnValue, tradeValue, go }: { ausd: number; mon: number; mkt?: Market; held: Holding[]; earnValue: number; tradeValue: number; go: Go }) {
+export function Home({ ausd, mon, mkt, held, earnValue, tradeValue, loaded, go }: { ausd: number; mon: number; mkt?: Market; held: Holding[]; earnValue: number; tradeValue: number; loaded: boolean; go: Go }) {
   const { width } = useWindowDimensions();
   const now = Date.now() / 1000;
   const active = held.filter((h) => !h.series.settled);
@@ -23,17 +23,21 @@ export function Home({ ausd, mon, mkt, held, earnValue, tradeValue, go }: { ausd
     setGuide(false);
     if (Platform.OS !== "web") SecureStore.setItemAsync("fl-guide-seen", "1").catch(() => undefined);
   };
-  const empty = total < 0.5 && held.length === 0;
+  const empty = loaded && total < 0.5 && held.length === 0;
 
   return (
     <View>
       <View style={{ marginHorizontal: -20, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 }}>
         <Glow width={width} height={340} style={{ left: 0, top: -60 }} />
         <Label>Your money</Label>
-        <Big size={54} style={{ marginTop: 4 }}>{usd(total)}</Big>
-        <Text style={{ fontFamily: F.body, fontSize: 15, color: C.ink2, marginTop: 6 }}>
-          {usd(ausd)} in your wallet{earnValue > 0 ? ` · ${usd(earnValue)} earning` : ""}{tradeValue > 0 ? ` · ${usd(tradeValue)} in trading` : ""} · {mon.toFixed(2)} MON for fees
-        </Text>
+        <Big size={54} style={{ marginTop: 4 }}>{loaded ? usd(total) : "…"}</Big>
+        {loaded ? (
+          <Text style={{ fontFamily: F.body, fontSize: 15, color: C.ink2, marginTop: 6 }}>
+            {usd(ausd)} in your wallet{earnValue > 0 ? ` · ${usd(earnValue)} earning` : ""}{tradeValue > 0 ? ` · ${usd(tradeValue)} in trading` : ""} · {mon.toFixed(2)} MON for fees
+          </Text>
+        ) : (
+          <Text style={{ fontFamily: F.body, fontSize: 15, color: C.mute, marginTop: 6 }}>Reading your account…</Text>
+        )}
         {mkt && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 14 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.lime }} />
@@ -89,6 +93,12 @@ export function Home({ ausd, mon, mkt, held, earnValue, tradeValue, go }: { ausd
         <Action title="Trade MON" detail="Bet on MON going up or down, on Perpl" onPress={() => go("Trade")} icon={<Text style={{ fontSize: 20, color: C.ink }}>⇅</Text>} />
         <Action title="Add money" detail="From Base, Arbitrum, Ethereum and more" onPress={() => go("Wallet")} icon={<Text style={{ fontSize: 20, color: C.ink }}>+</Text>} />
       </View>
+
+      {!guide && (
+        <Pressable onPress={() => setGuide(true)} style={{ marginTop: 18 }}>
+          <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.mute }}>New here? See what you can do →</Text>
+        </Pressable>
+      )}
 
       <Label style={{ marginTop: 22 }}>Your floors</Label>
       {active.length === 0 ? (
