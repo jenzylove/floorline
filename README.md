@@ -177,7 +177,7 @@ Contracts (needs [Foundry](https://book.getfoundry.sh)):
 ```sh
 git clone --recurse-submodules https://github.com/jenzylove/floorline.git
 cd floorline/contracts
-forge test --no-match-path "test/fork/*"                                  # 39 unit and invariant tests
+forge test --no-match-path "test/fork/*"                                  # 44 unit, fuzz and invariant tests
 forge test --fork-url https://rpc.monad.xyz --match-path "test/fork/*"    # 6 tests against live Perpl
 ```
 

@@ -52,7 +52,7 @@ A review on 4 October 2026 led to a second deployment (v2) on 8 October. The fir
 
 ## Known limits
 
-* **No external audit.** 39 unit and invariant tests and 6 mainnet fork tests pass. That is not an audit.
+* **No external audit.** 44 unit, fuzz and invariant tests and 6 mainnet fork tests pass. That is not an audit.
 * **The live hedge is off chain custody.** The running bot hedges through Perpl's API from the operator's own Perpl account, and the operator sweeps hedge profit and loss to the vault after each cycle. Depositors trust the operator for that sweep. The contract's own hedge path exists and is tested but is not what runs today.
 * **One keeper process.** If it stops, hedging and new series stop and the vault carries unhedged risk until it restarts.
 * **Open series are not capped.** Vault accounting loops over open series, so a very large number of them would raise gas costs for every action.
