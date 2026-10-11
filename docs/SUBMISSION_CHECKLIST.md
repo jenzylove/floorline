@@ -15,7 +15,7 @@ Agora, Best Mobile Trading App (Track 01):
 - [x] Mobile app. Android APK on the GitHub release
 - [x] Authenticates via Mera passkey. Account created on a real phone, 9 Oct
 - [x] Holds and displays an AUSD balance. 2.000341 AUSD after the 10 Oct deposit
-- [ ] Executes trades through Perpl in the app. Built; needs 10 AUSD in the app account for Perpl's minimum, not yet done on the phone
+- [x] Executes trades through Perpl in the app. Done on a real phone, 11 Oct: Perpl account #5455 opened from the passkey account, one trade opened and closed
 - [ ] Demo video ≤ 2 min: passkey login, AUSD balance, at least one Perpl trade
 - [x] Write-up of core features. README, "The app"
 
@@ -24,7 +24,7 @@ Kuru, Bring New Assets and Markets (Track 01):
 - [x] The infrastructure that makes them viable (vault, pricing, settlement). Live on mainnet
 
 Perpl, Best use of Perpl's API (all tracks):
-- [x] Production-ready automation on Perpl (hedging keeper). 75+ real fills through the trading API, listed on /proof
+- [x] Production-ready automation on Perpl (hedging keeper). 75+ real fills through the trading API, listed on /proof; since 11 Oct the hedge runs from the vault's own Perpl account #5456 (`0x7cbf1bdc…9a50`)
 
 Chainlink, Best workflow with CRE (all tracks):
 - [x] CRE workflow built and simulated as an orchestration layer (observed vol, settlement). Simulated only, with a broadcast run on mainnet: `0x324fb420…4440`

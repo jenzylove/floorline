@@ -40,8 +40,8 @@
   </div>
 
   <div class="hair"></div>
-  <h3>Hedge fills on Perpl</h3>
-  <p class="mute" style="font-size:15px;margin-top:6px">Read from Perpl's own position events for the hedge account (operator account 5374, trading through Perpl's API). After each cycle any hedge profit is owed to the vault; losses stay with the operator.</p>
+  <h3>The hedge on Perpl</h3>
+  <p class="mute" style="font-size:15px;margin-top:6px">The vault holds its own Perpl account. The keeper can only place orders through the vault, within 2% of Perpl's oracle, and the money never leaves the vault's control. Read from Perpl right now. Below it: the earlier fills, made through Perpl's trading API from the operator's account until 11 Oct.</p>
   <div style="margin-top:14px" id="hedgeLive"></div>
   <div class="feed" id="hedge"></div>
 
@@ -69,7 +69,7 @@ const perplAbi = parseAbi([
   "function getPosition(uint256,uint256) view returns ((uint256 accountId,uint256 nextNodeId,uint256 prevNodeId,uint8 positionType,uint256 depositCNS,uint256 pricePNS,uint256 lotLNS,uint256 entryBlock,int256 pnlCNS,int256 deltaPnlCNS,int256 premiumPnlCNS),uint256,bool)",
   "function getAccountById(uint256) view returns ((uint256 accountId,uint256 balanceCNS,uint256 lockedBalanceCNS,uint8 frozen,address accountAddr,(uint256,uint256,uint256,uint256) positions))",
 ]);
-const HEDGE_ACCOUNT = 5374n;
+const hedgeAbi = parseAbi(["function perplAccountId() view returns (uint256)"]);
 
 const KIND = { deposit: "Deposit", withdraw: "Withdraw", seriesCreated: "New floor", bought: "Bought", settled: "Settled", settledLate: "Settled late", redeemed: "Collected", hedgeAccountOpened: "Hedge account" };
 const v1 = "0x85c57fec4c4861b7d3a99d47c5189de62221a748";
@@ -93,6 +93,7 @@ function vaultLine(e) {
 
 let fills;
 async function loadHedge() {
+  const HEDGE_ACCOUNT = await client.readContract({ address: ADDR.vault, abi: hedgeAbi, functionName: "perplAccountId" });
   const [[p], a] = await Promise.all([
     client.readContract({ address: ADDR.perpl, abi: perplAbi, functionName: "getPosition", args: [10n, HEDGE_ACCOUNT] }),
     client.readContract({ address: ADDR.perpl, abi: perplAbi, functionName: "getAccountById", args: [HEDGE_ACCOUNT] }),
@@ -101,14 +102,14 @@ async function loadHedge() {
   const live = lots > 0
     ? `<b class="lime">short ${lots} MON</b> from ${price(Number(p.pricePNS) / 1e6)}, profit or loss ${usd(Number(p.pnlCNS) / 1e6, 4)}`
     : `<b>flat</b>, no open short (nothing to hedge right now)`;
-  $("#hedgeLive").innerHTML = `<div class="row"><span>Live position · account 5374 · read from Perpl now</span><span>${live}</span></div><div class="row"><span>Account balance on Perpl</span><span>${usd(Number(a.balanceCNS + a.lockedBalanceCNS) / 1e6, 4)}</span></div>`;
+  $("#hedgeLive").innerHTML = `<div class="row"><span>Live position · the vault's Perpl account #${HEDGE_ACCOUNT} · read from Perpl now</span><span>${live}</span></div><div class="row"><span>Held by the vault on Perpl</span><span>${usd(Number(a.balanceCNS + a.lockedBalanceCNS) / 1e6, 4)}</span></div>`;
   if (!fills) fills = await (await fetch("/hedge-fills.json")).json();
   $("#hedge").innerHTML = fills.fills.slice(0, 40).map((h) => {
     const before = Number(h.lotsBefore), after = Number(h.lotsAfter);
     const what = h.kind === "opened" ? `opened short ${after} MON` : h.kind === "closed" ? "closed the short" : `${h.kind} short ${before} → ${after} MON`;
     const px = h.price ? ` at ${price(Number(h.price) / 1e6)}` : "";
     return `<div class="item"><span class="k">${h.kind}</span><span>${what}${px} <span class="mute">${new Date(h.timestamp * 1000).toUTCString().slice(5, 22)} UTC</span></span><a href="${tx(h.txHash)}" target="_blank">${short(h.txHash)} ↗</a></div>`;
-  }).join("") + `<div class="mute mono" style="font-size:12px;margin-top:12px">${fills.fills.length} fills exported ${fills.exportedAt} from Perpl's position events. Newer fills show in the live position above.</div>`;
+  }).join("") + `<div class="mute mono" style="font-size:12px;margin-top:12px">${fills.fills.length} fills through Perpl's trading API, exported ${fills.exportedAt} from Perpl's position events. Since 11 Oct the hedge is placed by the vault itself and shows in the live position above.</div>`;
 }
 
 async function load() {
@@ -143,6 +144,8 @@ const MILESTONES = [
   ["Resale", "Floor token resold on a Monday Trade pool: 17.744 tokens for 0.01 AUSD", "0xceb08ec71266efc179e7c722481330ca83e9506c881808f526f666131fa0ed77"],
   ["Pool", "Monday Trade pool for the 7 day floor token, created at the vault's price", "0xed9b305640820cad828f89c9c75ca5552be9e4e805b2500562337c29f4c04814"],
   ["Kuru", "Testnet: 1,500 protection tokens bought on Kuru's order book at 0.00229 each", "0xdd36ddec456380484620db6abf0eb224551ae555c08b123dc1ee0eab2f5385dd", "testnet"],
+  ["Hedge", "The vault opens its own Perpl account with 10 AUSD of its free money", "0x80f535205bd7e7c4644f4a53a25080c01a526132646e7da67bf172742ddee361"],
+  ["Hedge", "First hedge placed by the vault itself: short 7 MON", "0x7cbf1bdc22cebd17cbf3fbabbc4b8c48556d24f86df248a96aefa428d5269a50"],
   ["Kuru", "Testnet: the keeper posts its first two sided quotes around the vault's price", "0x4bbfd93df8a4c9d54c0341fb3ff8ef15f071879538feeb99840d7c9f7c99acd5", "testnet"],
   ["Kuru", "Testnet: a second wallet buys 100 floors from the keeper's ask, and the keeper refills", "0x09e31beb8f7dd06dde3adf3eee66dff124b8c1325982d969fe94e3177e449541", "testnet"],
 ];

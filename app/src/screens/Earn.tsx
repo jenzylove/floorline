@@ -1,6 +1,7 @@
 import { friendly } from "../errors";
-import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import type { LocalAccount } from "viem";
 import type { VaultView } from "../data";
 import { depositEarn, withdrawEarn } from "../tx";
@@ -15,6 +16,24 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
   const [err, setErr] = useState<string>();
   const [note, setNote] = useState<string>();
   const [how, setHow] = useState(false);
+  // What was put in, remembered on this phone, so the screen can say what the deposit has made in dollars.
+  // There is no honest yearly rate to quote for a vault this young, so it shows the real change instead.
+  const KEY = `fl-earn-${account.address.toLowerCase()}`;
+  const [basis, setBasis] = useState<{ put: number; since: number }>();
+  const keep = (b: { put: number; since: number } | undefined) => {
+    setBasis(b);
+    if (Platform.OS === "web") return;
+    (b ? SecureStore.setItemAsync(KEY, JSON.stringify(b)) : SecureStore.deleteItemAsync(KEY)).catch(() => undefined);
+  };
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    SecureStore.getItemAsync(KEY).then((raw) => raw && setBasis(JSON.parse(raw))).catch(() => undefined);
+  }, [KEY]);
+  useEffect(() => {
+    // a deposit made before this was tracked: start counting from what it is worth now
+    if (!basis && v && v.myValue > 0.01) keep({ put: v.myValue, since: Date.now() });
+  }, [v?.myValue, basis]);
+  const made = basis && v ? v.myValue - basis.put : undefined;
   const n = Number(amt);
   const max = mode === "in" ? ausd : (v?.myMaxWithdraw ?? 0);
 
@@ -27,6 +46,7 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
     try {
       if (mode === "in") await depositEarn(account, n, step);
       else await withdrawEarn(account, n, step);
+      keep(mode === "in" ? { put: (basis?.put ?? v?.myValue ?? 0) + n, since: basis?.since ?? Date.now() } : (basis && basis.put - n > 0.01 ? { put: basis.put - n, since: basis.since } : undefined));
       setNote(mode === "in" ? `${usd(n)} is in. It starts earning now and there is nothing else to do. Check back to watch it grow.` : `${usd(n)} is back in your wallet.`);
       setAmt("");
       onDone();
@@ -63,6 +83,15 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
         {v && v.myValue > 0 && v.totalAssets > 0 && (
           <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.limeInk, marginTop: 2 }}>
             Earning. You hold {Math.min(100, (v.myValue / v.totalAssets) * 100).toFixed(0)}% of the vault, so you get that share of what buyers pay.
+          </Text>
+        )}
+        {made !== undefined && basis && v && v.myValue > 0.01 && (
+          <Text style={{ fontFamily: F.medium, fontSize: 14, color: made < -0.00005 ? C.below : C.ink2, marginTop: 6 }}>
+            {made > 0.00005
+              ? `Up ${usd(made, 4)} since ${new Date(basis.since).toLocaleDateString()}.`
+              : made < -0.00005
+                ? `Down ${usd(-made, 4)} since ${new Date(basis.since).toLocaleDateString()}. It moves as open floors are revalued, and comes back if they end unused.`
+                : `No change yet since ${new Date(basis.since).toLocaleDateString()}. It moves when floors are sold.`}
           </Text>
         )}
         <Segment items={["in", "out"]} value={mode} onChange={(m) => { setMode(m); setAmt(""); }} render={(m) => (m === "in" ? "Put in" : "Take out")} />

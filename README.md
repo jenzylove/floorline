@@ -47,7 +47,7 @@ A floor is a fully backed put on MON, settled in AUSD.
 
 1. **You pay once.** Pick a floor and a date. The vault prices it on chain with Black Scholes from MON's realised volatility. The quote is what you pay.
 2. **The payout is locked.** The most the floor could ever pay is locked in AUSD inside the vault the moment you buy. Every floor is backed in full, so a payout can never fail for lack of funds.
-3. **The vault hedges.** A keeper shorts MON on Perpl to offset the risk the vault carries.
+3. **The vault hedges itself.** It holds its own Perpl account and shorts MON there to offset the risk it carries. A keeper triggers the orders but can only trade through the vault, inside a price band.
 4. **It settles on the date.** Seconds after expiry the floor settles at Perpl's oracle price. Below your floor, you collect the difference.
 
 The other side is the vault. Anyone can deposit AUSD (ERC 4626), back the floors and earn the premiums. Depositors can lose part of their deposit when MON falls hard. The hedge softens that. It does not remove it.
@@ -83,7 +83,8 @@ flowchart TD
     VF[VolFeed<br/>pricing volatility] -->|Black Scholes input| V
     K[Keeper bot] -->|posts volatility, step limited| VF
     K -->|opens and settles series| V
-    K -->|delta hedge through the trading API| P
+    K -->|triggers hedge orders, price banded| V
+    V -->|shorts MON from its own account| P
     C[Chainlink CRE workflow] -->|observed volatility, never priced| VF
     T -->|resale| M[Monday Trade pool, mainnet<br/>Kuru order book, testnet]
     A[Aurora Intents] -->|deposits from other chains| U
@@ -130,6 +131,7 @@ Real, on Monad mainnet:
 
 * Vault, pricing, settlement and the rolling series (a day and a week, three floors each).
 * Real floors bought, hedged and settled. One full cycle: 30 hedge orders on Perpl, settled 9 seconds after expiry.
+* The vault hedging itself: its own Perpl account, opened and trading on mainnet.
 * A real resale of a floor token on Monday Trade.
 * A real deposit from Base through Aurora Intents, converted to AUSD on Monad.
 * The mobile app: passkey account, AUSD balance, buy, earn, collect, and Perpl trades from the same account.
@@ -137,7 +139,7 @@ Real, on Monad mainnet:
 Limits you should know:
 
 * **Size is small.** The vault holds a few dollars. This is a working product at demo scale, not a funded one.
-* **The hedge runs through Perpl's API from the operator's Perpl account,** not from the vault contract. Hedge profit and loss is swept to the vault by the operator after each cycle, and every sweep is logged. The contract can also hedge by itself (`HedgedFloorVault.hedge`), and that path is tested on a mainnet fork, but the live bot uses the API.
+* **The hedge moved on chain on 11 Oct.** Until then the bot hedged through Perpl's trading API from the operator's own Perpl account (75+ real fills, listed on /proof), and the operator swept the result to the vault. Since 11 Oct the vault holds its own Perpl account and every hedge order goes through `HedgedFloorVault.hedge`, so the hedge money never leaves the vault. The API path is still in the keeper (`EXECUTION=api`).
 * **Chainlink CRE is simulated, not deployed to a DON.** The simulation forwarder does not verify signatures, so CRE reports are recorded as an *observed* volatility for anyone to compare. They never set the price. The keeper posts the pricing volatility, limited to a maximum step per update. The workflow can also settle expired series, but every settlement so far was done by the keeper.
 * **Kuru is on testnet, with a test dollar.** A floor token has a live two sided market on a Kuru order book there: a keeper quotes bids and asks around the vault's price and refills after fills. Kuru Spot V2 market creation is owner only; we asked Kuru's team on 9 Oct and they are checking on Monday 12 Oct. There is no Kuru market on mainnet.
 * **The owner key has real power:** it can change pricing parameters, pause buys and settle late. There is no timelock or multisig yet.
@@ -150,7 +152,7 @@ Limits you should know:
 |---|---|
 | Track 01 | A new primitive for Monad: fully backed downside protection, priced, hedged and settled on chain. |
 | Agora | Mobile trading app. Passkey sign in, AUSD balance, floors paid and backed in AUSD, Perpl trades in the app. |
-| Perpl | Price, settlement oracle and hedge venue. An automated delta hedging bot on Perpl's trading API. |
+| Perpl | Price, settlement oracle and hedge venue. An automated delta hedging bot: 75+ fills through Perpl's trading API, then moved on chain into a Perpl account the vault owns. The bot reads market data and candles from Perpl's API. |
 | Chainlink CRE | A workflow that computes MON's realised volatility from Perpl candles and writes it on chain as an independent check on the pricing input. |
 | Kuru | Floors as a new asset class on Kuru's order book: the vault mints, prices and settles them, and a keeper makes a two sided market in them on Kuru (testnet). |
 | Aurora Intents | Add money from Base, Arbitrum, Ethereum and more straight into the Monad account. |
