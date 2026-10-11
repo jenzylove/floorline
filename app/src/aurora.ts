@@ -112,7 +112,7 @@ export async function usdcBalance(owner: Address): Promise<number> {
 
 /** Quote a USDC to AUSD swap on Monad (KyberSwap aggregator). */
 export async function quoteToAusd(usdc: number): Promise<{ ausd: number; route: unknown; router: Address; via: string }> {
-  const amountIn = BigInt(Math.floor(usdc * 1e6)).toString();
+  const amountIn = parseUnits(usdc.toFixed(6), 6).toString();
   const res = await fetch(`${KYBER}/routes?tokenIn=${MONAD_USDC}&tokenOut=${ADDR.ausd}&amountIn=${amountIn}`, { headers: { "x-client-id": CLIENT_ID } });
   const j = (await res.json()) as { code: number; message: string; data?: { routeSummary: { amountOut: string; route: { exchange: string }[][] }; routerAddress: Address } };
   if (j.code !== 0 || !j.data) throw new Error(j.message || "no route");
@@ -131,7 +131,7 @@ export async function convertToAusd(account: LocalAccount, usdc: number, step: (
   if (b.code !== 0 || !b.data) throw new Error(b.message || "could not build the swap");
 
   const wallet = createWalletClient({ account, chain: monad, transport });
-  const amountIn = BigInt(Math.floor(usdc * 1e6));
+  const amountIn = parseUnits(usdc.toFixed(6), 6);
   const allowance = await client.readContract({ address: MONAD_USDC, abi: erc20Abi, functionName: "allowance", args: [account.address, b.data.routerAddress] });
   if (allowance < amountIn) {
     step("Allow USDC");

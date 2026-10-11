@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Book, DEFAULTS, ladder, shouldRequote } from "../src/kuru/quotes.js";
+import { type Book, DEFAULTS, ladder, nextState, shouldRequote } from "../src/kuru/quotes.js";
 
 const book: Book = { pricePrecision: 1_000_000, sizePrecision: 1_000_000, tick: 1, minSize: 10_000n };
 const mint = 0.002014; // what the vault charges for one token
@@ -50,6 +50,28 @@ describe("kuru ladder", () => {
 
   it("posts nothing without a price", () => {
     expect(ladder(0, book, 1500, 40)).toEqual({ bids: [], asks: [] });
+  });
+});
+
+describe("maker economics", () => {
+  it("every ask is above the vault's value before its spread, so the maker never sells below value", () => {
+    const { asks } = ladder(mint, book, 1500, 40);
+    const value = (mint / (1 + DEFAULTS.spreadBps / 10_000)) * book.pricePrecision;
+    expect(asks.every((a) => a.price > value)).toBe(true);
+  });
+});
+
+describe("maker state after a requote", () => {
+  const prev = { resting: [{ id: 2, size: "250000000" }, { id: 3, size: "250000000" }], mint: 0.002 };
+  const placed = [{ id: 9, size: "250000000" }];
+  it("a reverted requote keeps the orders still on the book and the old price", () => {
+    expect(nextState(prev, prev.resting, false, [], 0.0025)).toEqual(prev);
+  });
+  it("a successful requote replaces them and takes the new price", () => {
+    expect(nextState(prev, prev.resting, true, placed, 0.0025)).toEqual({ resting: placed, mint: 0.0025 });
+  });
+  it("a successful pull with no vault price leaves nothing resting and no price", () => {
+    expect(nextState(prev, prev.resting, true, [], undefined)).toEqual({ resting: [], mint: undefined });
   });
 });
 

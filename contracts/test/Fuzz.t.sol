@@ -68,8 +68,8 @@ contract FuzzTest is Test {
         assertEq(premium, quoted, "the quote is the price");
         assertEq(vault.getSeries(id).locked, units * strike, "locked the full payout");
         assertGe(ausd.balanceOf(address(vault)), vault.totalLocked(), "the vault holds what it locked");
-        // a put is never worth more than its strike; the spread and the short series surcharge sit on top
-        assertLe(premium, units * strike * 13 / 10 + 1, "premium is bounded by the payout");
+        // across the floors the keeper lists (up to 50% above the price) a buyer never pays more than the floor can pay
+        assertLe(premium, units * strike, "premium never exceeds the largest payout");
     }
 
     /// At the end date the holder gets exactly the gap below the floor, and depositors keep the rest.

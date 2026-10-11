@@ -54,6 +54,18 @@ The other side is the vault. Anyone can deposit AUSD (ERC 4626), back the floors
 
 Each floor is an ERC 20 token, so it can be resold before the date.
 
+## A new market on Kuru
+
+A floor is an ERC 20 token, so it can trade on an order book like any other asset. What makes it a real market and not just a listed token is a price both ways:
+
+* The vault will always mint a floor at its own quote. That is the ceiling.
+* A keeper (`keeper/src/kuru`) reads that quote and keeps a ladder of asks just under it and bids under the vault's value before its spread, on Kuru's order book.
+* When the vault's price moves by more than 1.5%, or an order is filled, the keeper cancels and replaces its orders in one transaction.
+
+So buying a floor on Kuru is never worse than minting one, and a holder can sell before the date.
+
+Why the keeper does not lose money doing this: the vault's mint price is its fair value plus a 10% spread (`spreadBps = 1000`). Asks sit just under the mint price, which is still about 9% above fair value. Bids sit below fair value. So the keeper sells above what a floor is worth and buys back below it, and a test asserts both (`keeper/test/kuru.test.ts`). The live book is on [/proof](https://floorline-app.vercel.app/proof). This runs on Monad testnet with a test dollar, on Kuru's older Router, because Spot V2 market creation is owner only. Run it with `npm run kuru` in `keeper/`.
+
 ## The app
 
 <p align="center">
@@ -107,15 +119,16 @@ docs/       PRD, plan, build log, deployments, submission checklist.
 
 Safety checks in the vault: price freshness, mark against oracle deviation, a settlement window after which only the owner can settle, an emergency settle after one day, a step limit on volatility updates, a slippage bound on hedge orders, and a block on deposits while the valuation is stale.
 
-## A new market on Kuru
+## Results so far
 
-A floor is an ERC 20 token, so it can trade on an order book like any other asset. What makes it a real market and not just a listed token is a price both ways:
+Two floors with a real buyer have run to their end date. Both ended above the floor, so neither paid out. Small numbers, shown as they are.
 
-* The vault will always mint a floor at its own quote. That is the ceiling.
-* A keeper (`keeper/src/kuru`) reads that quote and keeps a ladder of asks just under it and bids under the vault's value before its spread, on Kuru's order book.
-* When the vault's price moves by more than 1.5%, or an order is filled, the keeper cancels and replaces its orders in one transaction.
+| Cycle | Floor | Buyer paid | Floor paid out | Hedge result | Where the hedge result went |
+|---|---|---|---|---|---|
+| 1 Oct, first vault | 140 MON at $0.032206, 15 minutes | $0.0071 | $0 | about −$0.04 | Operator's account |
+| 9 Oct, current vault | 150 MON at $0.024338, 1 hour | $0.0243 | $0 | −$0.0169 | Operator's account |
 
-So buying a floor on Kuru is never worse than minting one, and a holder can sell before the date. The live book is on [/proof](https://floorline-app.vercel.app/proof). This runs on Monad testnet with a test dollar, on Kuru's older Router, because Spot V2 market creation is owner only. Run it with `npm run kuru` in `keeper/`.
+What this shows, plainly: depositors kept the premium both times, but hedging cost more than the premium both times, and the operator absorbed it because the hedge then ran from the operator's own Perpl account. In cycle 1 the price was set from a manual 90% volatility while MON's realised volatility was about 254%, so the floor was sold too cheaply; pricing has used realised volatility since (112% to 255% over the build). Since 11 Oct the hedge sits in the vault's own account, so its result now lands on depositors. Two short cycles are not evidence that the vault earns over time. Hashes for every step are in [docs/BUILD_LOG.md](docs/BUILD_LOG.md).
 
 ## Why Monad
 
@@ -145,6 +158,14 @@ Limits you should know:
 * **The owner key has real power:** it can change pricing parameters, pause buys and settle late. There is no timelock or multisig yet.
 * **The keeper is one process.** If it stops, hedging and new series stop. Anyone can still settle an expired series in its window.
 * The contracts have had an internal review only. No external audit.
+
+## What makes it need less trust, in order
+
+1. **Done, 11 Oct:** the hedge runs from a Perpl account the vault owns, not the operator's.
+2. **Done:** anyone can settle an expired floor in its window; the keeper is not required.
+3. **Next:** the owner key moves to a multisig with a timelock on pricing parameters. Today it is one key.
+4. **Next:** a cap on open series and a check that a premium never exceeds the payout, inside the contract.
+5. **Next:** the Chainlink CRE workflow deployed to a live network as a second settler and an independent price check, and more than one keeper.
 
 ## Track and bounties
 

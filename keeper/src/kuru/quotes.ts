@@ -67,6 +67,25 @@ export function ladder(mint: number, book: Book, haveTokens: number, haveQuote: 
   return { bids, asks };
 }
 
+export interface Resting {
+  id: number;
+  size: string; // book integer size when placed
+}
+export interface MakerState {
+  resting: Resting[];
+  mint?: number;
+}
+
+/**
+ * What the maker remembers after a requote transaction. If it reverted, nothing on the book changed:
+ * the old orders are still resting at the old price, so the previous state is kept and the next cycle
+ * tries again. Only a successful transaction replaces the orders and the price.
+ */
+export function nextState(prev: MakerState, live: Resting[], ok: boolean, placed: Resting[], mint: number | undefined): MakerState {
+  if (!ok) return { resting: live, mint: prev.mint };
+  return { resting: placed, mint };
+}
+
 /** Requote when the vault's price has moved by more than `bps`, or when a resting order was filled or is gone. */
 export function shouldRequote(lastMint: number | undefined, mint: number, restingChanged: boolean, bps = 150): boolean {
   if (lastMint === undefined || restingChanged) return true;

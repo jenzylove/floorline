@@ -13,7 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { type Address, type Hex, createPublicClient, createWalletClient, decodeEventLog, defineChain, http, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { initLog, log } from "../log.js";
-import { type Book, type Level, ladder, shouldRequote } from "./quotes.js";
+import { type Book, type Level, type MakerState, type Resting, ladder, nextState, shouldRequote } from "./quotes.js";
 
 const env = (k: string, d?: string) => process.env[k] ?? d ?? "";
 const RPC = env("KURU_RPC_URL", "https://testnet-rpc.monad.xyz");
@@ -38,18 +38,20 @@ const vaultAbi = parseAbi(["function quote(uint256 seriesId, uint256 amount) vie
 const chain = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
 const pub = createPublicClient({ chain, transport: http(RPC) });
 
-interface Resting {
-  id: number;
-  size: string; // book integer size when placed
-}
-const load = (): { resting: Resting[]; mint?: number } => (existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : { resting: [] });
-const save = (s: { resting: Resting[]; mint?: number }) => writeFileSync(STATE, JSON.stringify(s));
+const load = (): MakerState => (existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : { resting: [] });
+const save = (s: MakerState) => writeFileSync(STATE, JSON.stringify(s));
 
 async function cycle(me: Address, book: Book, base: Address, quote: Address, baseDecimals: number, quoteDecimals: number, send?: ReturnType<typeof createWalletClient>) {
   const state = load();
-  // the vault's price for one token, from a quote on 1,000 so rounding does not matter
-  const premium = await pub.readContract({ address: VAULT, abi: vaultAbi, functionName: "quote", args: [SERIES, 1000n * 10n ** 18n] });
-  const mint = Number(premium) / 10 ** quoteDecimals / 1000;
+  // the vault's price for one token, from a quote on 1,000 so rounding does not matter.
+  // If the vault will not quote (stale price, paused, series closed) there is no price to stand behind.
+  let mint = 0;
+  try {
+    const premium = await pub.readContract({ address: VAULT, abi: vaultAbi, functionName: "quote", args: [SERIES, 1000n * 10n ** 18n] });
+    mint = Number(premium) / 10 ** quoteDecimals / 1000;
+  } catch (e) {
+    log("kuru_no_vault_price", { error: e instanceof Error ? e.message.split("\n")[0] : String(e) });
+  }
 
   // which of our orders are still resting untouched
   const live: Resting[] = [];
@@ -78,11 +80,15 @@ async function cycle(me: Address, book: Book, base: Address, quote: Address, bas
     else tokens += t;
   }
 
+  // with no vault price the ladder is empty, so the requote below only cancels: the book never shows a
+  // price the vault has stopped backing
   const want = ladder(mint, book, tokens, cash);
+  const pull = !(mint > 0) && live.length > 0;
   const [bid, ask] = await pub.readContract({ address: BOOK, abi: bookAbi, functionName: "bestBidAsk" });
   log("kuru_quote", { mint, tokens, cash, bestBid: bid > 10n ** 30n ? null : Number(bid) / 1e18, bestAsk: Number(ask) / 1e18, bids: want.bids.map(show(book)), asks: want.asks.map(show(book)), resting: live.length });
 
-  if (!shouldRequote(state.mint, mint, changed || live.length !== state.resting.length)) return;
+  if (!(mint > 0) && live.length === 0) return; // nothing resting and nothing to quote
+  if (!pull && !shouldRequote(state.mint, mint, changed || live.length !== state.resting.length)) return;
   if (!send) {
     log("kuru_dry_run", { note: "set KURU_TRADING=1 to post these orders" });
     return;
@@ -107,8 +113,10 @@ async function cycle(me: Address, book: Book, base: Address, quote: Address, bas
       /* another event on the book */
     }
   }
-  save({ resting: receipt.status === "success" ? placed : [], mint });
-  log("kuru_requote", { hash, status: receipt.status, cancelled: live.length, placed: placed.length, mint });
+  const ok = receipt.status === "success";
+  save(nextState(state, live, ok, placed, mint > 0 ? mint : undefined));
+  if (ok) log("kuru_requote", { hash, status: receipt.status, cancelled: live.length, placed: placed.length, mint });
+  else log("kuru_requote_failed", { hash, kept: live.length });
 }
 
 const show = (book: Book) => (l: Level) => `${(Number(l.size) / book.sizePrecision).toFixed(0)} @ ${(l.price / book.pricePrecision).toFixed(6)}`;

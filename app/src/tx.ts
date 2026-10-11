@@ -11,6 +11,11 @@ const GAS = { approve: 100_000n, buy: 900_000n, redeem: 400_000n, deposit: 500_0
 
 export type Step = (label: string, hash?: Hash) => void;
 
+/** Dollars to 6 decimal units through a decimal string, so 0.29 is 290000 and never 289999. */
+export function toUnits6(n: number): bigint {
+  return parseUnits(n.toFixed(6), 6);
+}
+
 function walletFor(account: LocalAccount) {
   return createWalletClient({ account, chain: monad, transport });
 }
@@ -62,7 +67,7 @@ export async function redeemProtection(account: LocalAccount, seriesId: number, 
 }
 
 export async function depositEarn(account: LocalAccount, ausd: number, step: Step): Promise<Hash> {
-  const assets = BigInt(Math.floor(ausd * 1e6));
+  const assets = toUnits6(ausd);
   await ensureAllowance(account, ADDR.vault, assets, step);
   step("Deposit");
   const hash = await walletFor(account).writeContract({ address: ADDR.vault, abi: vaultAbi, functionName: "deposit", args: [assets, account.address], gas: GAS.deposit });
@@ -72,7 +77,7 @@ export async function depositEarn(account: LocalAccount, ausd: number, step: Ste
 }
 
 export async function withdrawEarn(account: LocalAccount, ausd: number, step: Step): Promise<Hash> {
-  const assets = BigInt(Math.floor(ausd * 1e6));
+  const assets = toUnits6(ausd);
   step("Withdraw");
   const hash = await walletFor(account).writeContract({
     address: ADDR.vault,
@@ -89,7 +94,7 @@ export async function withdrawEarn(account: LocalAccount, ausd: number, step: St
 // ---------------------------------------------------------------- Perpl, from the user's own account
 
 export async function perplOpenAccount(account: LocalAccount, ausd: number, step: Step): Promise<Hash> {
-  const amount = BigInt(Math.floor(ausd * 1e6));
+  const amount = toUnits6(ausd);
   await ensureAllowance(account, ADDR.perpl, amount, step);
   step("Open Perpl account");
   const hash = await walletFor(account).writeContract({ address: ADDR.perpl, abi: perplAbi, functionName: "createAccount", args: [amount], gas: GAS.perplOpen });
@@ -146,7 +151,7 @@ export async function perplOrder(
 
 /** Add AUSD to, or take free AUSD out of, the user's own Perpl account. Withdrawals land back in the passkey account. */
 export async function perplMove(account: LocalAccount, dir: "in" | "out", ausd: number, step: Step): Promise<Hash> {
-  const amount = BigInt(Math.floor(ausd * 1e6));
+  const amount = toUnits6(ausd);
   if (dir === "in") await ensureAllowance(account, ADDR.perpl, amount, step);
   const label = dir === "in" ? "Add to Perpl" : "Withdraw from Perpl";
   step(label);
@@ -172,7 +177,7 @@ export async function sendOut(account: LocalAccount, token: "AUSD" | "MON", to: 
   const hash =
     token === "MON"
       ? await w.sendTransaction({ to, value: parseUnits(amount.toFixed(18), 18), gas: 30_000n })
-      : await w.writeContract({ address: ADDR.ausd, abi: erc20Abi, functionName: "transfer", args: [to, BigInt(Math.floor(amount * 1e6))], gas: GAS.send });
+      : await w.writeContract({ address: ADDR.ausd, abi: erc20Abi, functionName: "transfer", args: [to, toUnits6(amount)], gas: GAS.send });
   step(label, hash);
   await wait(hash);
   return hash;
