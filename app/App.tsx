@@ -9,6 +9,7 @@ import type { Address, LocalAccount } from "viem";
 import { client } from "./src/chain";
 import { ADDR, vaultAbi } from "./src/contracts";
 import { allSeries, holdings, market, vault, wallet, type Holding, type Market, type SeriesView, type VaultView } from "./src/data";
+import { Launch } from "./src/Launch";
 import { Earn } from "./src/screens/Earn";
 import { Home } from "./src/screens/Home";
 import { Protect } from "./src/screens/Protect";
@@ -38,14 +39,16 @@ function previewSession(): Session | undefined {
 }
 
 export default function Root() {
+  const [ready, setReady] = useState(false);
   return (
     <SafeAreaProvider>
-      <App />
+      <App onReady={() => setReady(true)} />
+      <Launch ready={ready} />
     </SafeAreaProvider>
   );
 }
 
-function App() {
+function App({ onReady }: { onReady: () => void }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold, Jost_800ExtraBold });
@@ -129,7 +132,11 @@ function App() {
     }
   }
 
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
+  useEffect(() => {
+    if (fontsLoaded) onReady();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: "#121410" }} />;
 
   if (!session) {
     return (
@@ -255,7 +262,7 @@ const sty = () => ({
     right: 12,
     bottom: 10,
     flexDirection: "row",
-    backgroundColor: C.glass,
+    backgroundColor: C.card,
     borderRadius: 28,
     paddingTop: 10,
     shadowColor: C.shadow,

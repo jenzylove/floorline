@@ -60,15 +60,8 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
         {err && <Body style={{ color: C.below, marginTop: 8 }}>{err}</Body>}
       </Card>
 
-      <Card tint="below" style={{ marginTop: 14 }}>
-        <Text style={{ fontFamily: F.semi, fontSize: 16, color: C.ink }}>The risk, plainly</Text>
-        <Body style={{ marginTop: 4, fontSize: 14 }}>
-          When MON falls hard, floors pay out from the vault, so your deposit can lose value. The vault also hedges on Perpl, which softens that but does not remove it.
-        </Body>
-      </Card>
-
       <Pressable onPress={() => setHow(!how)} style={{ marginTop: 18 }}>
-        <Text style={{ fontFamily: F.semi, fontSize: 16, color: C.ink }}>{how ? "Hide how it works" : "How the vault works →"}</Text>
+        <Text style={{ fontFamily: F.semi, fontSize: 16, color: C.ink }}>{how ? "Hide the details" : "How it works, and the risk →"}</Text>
       </Pressable>
       {how && v && (
         <View style={{ marginTop: 8 }}>
@@ -79,6 +72,7 @@ export function Earn({ account, v, ausd, onDone }: { account: LocalAccount; v?: 
           <Row k="Free to back new floors" v={usd(v.free)} />
           <Row k="Selling floors" v={v.paused ? "paused" : "open"} vColor={v.paused ? C.below : C.limeInk} />
           <Body muted style={{ fontSize: 13, marginTop: 6 }}>Every floor sold has its full payout locked the moment it is bought. You can only take out what is not locked.</Body>
+          <Body muted style={{ fontSize: 13, marginTop: 8 }}>What you earn is what buyers pay for their floors. When MON falls below a floor, the payout comes from the vault, so a deposit can go down as well as up. The vault hedges on Perpl to soften that.</Body>
         </View>
       )}
     </View>

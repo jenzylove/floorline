@@ -4,6 +4,7 @@ import type { LocalAccount } from "viem";
 import type { Holding } from "../data";
 import { redeemProtection } from "../tx";
 import { AddMoney } from "./AddMoney";
+import { Send } from "./Send";
 import { Big, Body, Button, C, Card, F, Label, Row, Segment, Title, Trail, price, untilText, usd } from "../ui";
 import type { ThemePref } from "../theme";
 
@@ -41,6 +42,10 @@ export function You({ account, ausd, mon, held, pref, onPref, onDone, onSignOut 
 
       <Card style={{ marginTop: 14 }}>
         <AddMoney account={account} mon={mon} onDone={onDone} />
+      </Card>
+
+      <Card style={{ marginTop: 14 }}>
+        <Send account={account} ausd={ausd} mon={mon} onDone={onDone} />
       </Card>
 
       <Label style={{ marginTop: 22 }}>Your floors</Label>

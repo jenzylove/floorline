@@ -1,4 +1,4 @@
-import { createWalletClient, maxUint256, type Hash, type LocalAccount } from "viem";
+import { createWalletClient, maxUint256, parseUnits, type Address, type Hash, type LocalAccount } from "viem";
 import { client, monad, transport } from "./chain";
 import { ADDR, MON_MARKET, ORDER, erc20Abi, perplAbi, vaultAbi } from "./contracts";
 import { unitsToWei } from "./data";
@@ -7,7 +7,7 @@ import { unitsToWei } from "./data";
  * Every write is signed on the phone by the passkey account (Mera) and sent to Monad mainnet.
  * Monad's gas estimates can be too low for these calls, so each write carries an explicit limit.
  */
-const GAS = { approve: 100_000n, buy: 900_000n, redeem: 400_000n, deposit: 500_000n, withdraw: 500_000n, perplOpen: 600_000n, perplOrder: 1_500_000n };
+const GAS = { approve: 100_000n, buy: 900_000n, redeem: 400_000n, deposit: 500_000n, withdraw: 500_000n, perplOpen: 600_000n, perplOrder: 1_500_000n, perplMove: 400_000n, send: 120_000n };
 
 export type Step = (label: string, hash?: Hash) => void;
 
@@ -140,6 +140,40 @@ export async function perplOrder(
     gas: GAS.perplOrder,
   });
   step("Send order to Perpl", hash);
+  await wait(hash);
+  return hash;
+}
+
+/** Add AUSD to, or take free AUSD out of, the user's own Perpl account. Withdrawals land back in the passkey account. */
+export async function perplMove(account: LocalAccount, dir: "in" | "out", ausd: number, step: Step): Promise<Hash> {
+  const amount = BigInt(Math.floor(ausd * 1e6));
+  if (dir === "in") await ensureAllowance(account, ADDR.perpl, amount, step);
+  const label = dir === "in" ? "Add to Perpl" : "Withdraw from Perpl";
+  step(label);
+  const hash = await walletFor(account).writeContract({
+    address: ADDR.perpl,
+    abi: perplAbi,
+    functionName: dir === "in" ? "depositCollateral" : "withdrawCollateral",
+    args: [amount],
+    gas: GAS.perplMove,
+  });
+  step(label, hash);
+  await wait(hash);
+  return hash;
+}
+
+// ---------------------------------------------------------------- out of the app
+
+/** Send AUSD or MON from the passkey account to any Monad address. */
+export async function sendOut(account: LocalAccount, token: "AUSD" | "MON", to: Address, amount: number, step: Step): Promise<Hash> {
+  const label = `Send ${token}`;
+  step(label);
+  const w = walletFor(account);
+  const hash =
+    token === "MON"
+      ? await w.sendTransaction({ to, value: parseUnits(amount.toFixed(18), 18), gas: 30_000n })
+      : await w.writeContract({ address: ADDR.ausd, abi: erc20Abi, functionName: "transfer", args: [to, BigInt(Math.floor(amount * 1e6))], gas: GAS.send });
+  step(label, hash);
   await wait(hash);
   return hash;
 }

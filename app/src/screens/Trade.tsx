@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 import type { LocalAccount } from "viem";
 import { perplAccount, perplMinOpen, type Market, type PerplAccount } from "../data";
-import { perplOpenAccount, perplOrder } from "../tx";
-import { Big, Body, Button, C, Card, Chips, F, Label, Row, Title, Trail, price, usd } from "../ui";
+import { perplMove, perplOpenAccount, perplOrder } from "../tx";
+import { Big, Body, Button, C, Card, Chips, F, Label, Row, Segment, Title, Trail, price, usd } from "../ui";
 
 const SIZES = [100, 500, 1_000, 2_000];
 const LEVERAGE = [1, 2, 5];
@@ -15,6 +15,8 @@ export function Trade({ account, mkt, ausd, onDone }: { account: LocalAccount; m
   const [fund, setFund] = useState("");
   const [size, setSize] = useState(SIZES[0]);
   const [lev, setLev] = useState(LEVERAGE[0]);
+  const [dir, setDir] = useState<"in" | "out">("out");
+  const [move, setMove] = useState("");
   const [steps, setSteps] = useState<{ label: string; hash?: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
@@ -116,6 +118,31 @@ export function Trade({ account, mkt, ausd, onDone }: { account: LocalAccount; m
         </View>
       )}
       </Card>
+      {acct && (
+        <Card style={{ marginTop: 14 }}>
+          <Label>Money in your Perpl account</Label>
+          <Segment items={["out", "in"] as ("in" | "out")[]} value={dir} onChange={(d) => { setDir(d); setMove(""); }} render={(d) => (d === "out" ? "Withdraw" : "Add more")} />
+          <TextInput
+            value={move}
+            onChangeText={setMove}
+            placeholder="0.00"
+            placeholderTextColor={C.mute}
+            keyboardType="decimal-pad"
+            style={{ fontFamily: F.display, fontSize: 36, color: C.ink, marginTop: 12 }}
+          />
+          <Body muted style={{ fontSize: 14 }}>
+            {dir === "out" ? `${usd(acct.balance)} free to withdraw. It goes back to your wallet here.` : `${usd(ausd)} AUSD in your wallet.`}
+          </Body>
+          <Button
+            title={dir === "out" ? "Withdraw from Perpl" : "Add to Perpl"}
+            ghost
+            onPress={() => run((step) => perplMove(account, dir, Number(move), step)).then(() => setMove(""))}
+            disabled={!(Number(move) > 0 && Number(move) <= (dir === "out" ? acct.balance : ausd) + 1e-9)}
+            busy={busy}
+          />
+          {dir === "out" && pos && <Body muted style={{ fontSize: 13, marginTop: 6 }}>Close your position first to free its margin.</Body>}
+        </Card>
+      )}
       <Trail steps={steps} />
       {err && <Body style={{ color: C.below, marginTop: 8 }}>{err}</Body>}
     </View>
