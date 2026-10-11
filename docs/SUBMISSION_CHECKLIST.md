@@ -24,7 +24,7 @@ Kuru, Bring New Assets and Markets (Track 01):
 - [x] The infrastructure that makes them viable (vault, pricing, settlement). Live on mainnet
 
 Kuru, Next Consumer Trading App (Track 01):
-- [ ] A spot trading product routing trades through Kuru's order book. Built: "Floors on Kuru" in the app reads the Spot V2 book and sends buy and sell orders to the market contract from the passkey account (testnet). Not yet traded from the phone
+- [x] A spot trading product routing trades through Kuru's order book. "Floors on Kuru" in the app reads the Spot V2 book and sends orders to the market contract from the passkey account. Done on a real phone, 11 Oct: 7,700 floors bought for about 10.34 test USDC `0x402fb4f5…45c8`. Testnet
 
 Perpl, Best use of Perpl's API (all tracks):
 - [x] Production-ready automation on Perpl (hedging keeper). 75+ real fills through the trading API, listed on /proof; since 11 Oct the hedge runs from the vault's own Perpl account #5456 (`0x7cbf1bdc…9a50`)
