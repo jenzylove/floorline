@@ -1,5 +1,5 @@
-import { createWalletClient, http, maxUint256, type Hash, type LocalAccount } from "viem";
-import { client, monad } from "./chain";
+import { createWalletClient, maxUint256, type Hash, type LocalAccount } from "viem";
+import { client, monad, transport } from "./chain";
 import { ADDR, MON_MARKET, ORDER, erc20Abi, perplAbi, vaultAbi } from "./contracts";
 import { unitsToWei } from "./data";
 
@@ -12,7 +12,7 @@ const GAS = { approve: 100_000n, buy: 900_000n, redeem: 400_000n, deposit: 500_0
 export type Step = (label: string, hash?: Hash) => void;
 
 function walletFor(account: LocalAccount) {
-  return createWalletClient({ account, chain: monad, transport: http() });
+  return createWalletClient({ account, chain: monad, transport });
 }
 
 async function wait(hash: Hash) {

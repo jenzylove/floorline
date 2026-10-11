@@ -1,5 +1,5 @@
 import { type Address } from "viem";
-import { client } from "./chain";
+import { PROXY, client } from "./chain";
 import { ADDR, MON_MARKET, PERPL_API, erc20Abi, perplAbi, priceAbi, vaultAbi, volAbi } from "./contracts";
 
 /** Every number the app shows is read here, live, from Monad mainnet or Perpl's public API. Nothing is cached or made up. */
@@ -126,7 +126,9 @@ export type Candle = { t: number; c: number };
 export async function candles(hours = 24, candleSeconds = 300): Promise<Candle[]> {
   const to = Date.now();
   const from = to - hours * 3600 * 1000;
-  const res = await fetch(`${PERPL_API}/v1/market-data/${MON_MARKET}/candles/${candleSeconds}/${from}-${to}`);
+  const path = `/v1/market-data/${MON_MARKET}/candles/${candleSeconds}/${from}-${to}`;
+  // direct first, then through the site's proxy for networks that cannot reach Perpl
+  const res = await fetch(`${PERPL_API}${path}`).catch(() => fetch(`${PROXY}/perpl${path}`));
   if (!res.ok) throw new Error(`Perpl candles HTTP ${res.status}`);
   const body = (await res.json()) as { d: { t: number; c: number }[] };
   return body.d.filter((d) => d.c > 0).map((d) => ({ t: d.t, c: d.c / 1e6 }));

@@ -2,7 +2,9 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/1click/:path*", "destination": "https://1click.chaindefuser.com/v0/:path*" },
-    { "source": "/api/kyber/:path*", "destination": "https://aggregator-api.kyberswap.com/monad/api/v1/:path*" }
+    { "source": "/api/kyber/:path*", "destination": "https://aggregator-api.kyberswap.com/monad/api/v1/:path*" },
+    { "source": "/api/rpc", "destination": "https://rpc.monad.xyz/" },
+    { "source": "/api/perpl/:path*", "destination": "https://app.perpl.xyz/api/:path*" }
   ],
   "headers": [
     { "source": "/.well-known/(.*)", "headers": [{ "key": "Content-Type", "value": "application/json" }] }

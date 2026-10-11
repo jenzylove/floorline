@@ -1,5 +1,5 @@
-import { createWalletClient, http, maxUint256, parseUnits, type Address, type Hash, type LocalAccount } from "viem";
-import { client, monad } from "./chain";
+import { createWalletClient, maxUint256, parseUnits, type Address, type Hash, type LocalAccount } from "viem";
+import { client, monad, transport } from "./chain";
 import { ADDR, erc20Abi } from "./contracts";
 
 /**
@@ -122,7 +122,7 @@ export async function convertToAusd(account: LocalAccount, usdc: number, step: (
   const b = (await build.json()) as { code: number; message: string; data?: { data: `0x${string}`; routerAddress: Address; gas: string } };
   if (b.code !== 0 || !b.data) throw new Error(b.message || "could not build the swap");
 
-  const wallet = createWalletClient({ account, chain: monad, transport: http() });
+  const wallet = createWalletClient({ account, chain: monad, transport });
   const amountIn = BigInt(Math.floor(usdc * 1e6));
   const allowance = await client.readContract({ address: MONAD_USDC, abi: erc20Abi, functionName: "allowance", args: [account.address, b.data.routerAddress] });
   if (allowance < amountIn) {
