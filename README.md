@@ -74,6 +74,8 @@ Why the keeper does not lose money doing this: the vault's mint price is its fai
 
 Sign in with a fingerprint, no seed phrase. Add money from another chain, protect MON in three steps by dragging the floor on the chart, earn from the vault, and trade MON on Perpl from the same account. Light and dark.
 
+Under Trade there is also **Floors on Kuru**: the live FLOOR/USDC order book from Kuru Spot V2, and buy or sell from the same passkey account. That part runs on Monad testnet with test USDC and is labelled so in the app.
+
 ## Judge fast path
 
 1. Open [/demo](https://floorline-app.vercel.app/demo). Pick a floor and an amount. The price is read from the mainnet vault every 10 seconds. Drag the slider to see the payout at any MON price.

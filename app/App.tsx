@@ -11,11 +11,12 @@ import { ADDR, vaultAbi } from "./src/contracts";
 import { allSeries, holdings, market, perplAccount, vault, wallet, type Holding, type Market, type SeriesView, type VaultView } from "./src/data";
 import { Launch } from "./src/Launch";
 import { Earn } from "./src/screens/Earn";
+import { FloorMarket } from "./src/screens/FloorMarket";
 import { Home } from "./src/screens/Home";
 import { Protect } from "./src/screens/Protect";
 import { Trade } from "./src/screens/Trade";
 import { You } from "./src/screens/You";
-import { Body, Button, C, F, Glow, applyTheme, price, usd } from "./src/ui";
+import { Body, Button, C, F, Glow, Segment, applyTheme, price, usd } from "./src/ui";
 import { loadPref, savePref, type ThemePref } from "./src/theme";
 import { createAccount, describeError, signIn, type Session } from "./src/wallet";
 
@@ -87,6 +88,7 @@ function App({ onReady }: { onReady: () => void }) {
   const [bal, setBal] = useState({ ausd: 0, mon: 0 });
   const [held, setHeld] = useState<Holding[]>([]);
   const [trading, setTrading] = useState(0);
+  const [tradeView, setTradeView] = useState<"mon" | "floors">(() => (Platform.OS === "web" && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "floors" ? "floors" : "mon"));
   const [loaded, setLoaded] = useState(false); // the first full read of the account has landed
   const [demoBuyer, setDemoBuyer] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -217,7 +219,11 @@ function App({ onReady }: { onReady: () => void }) {
         ) : tab === "Earn" ? (
           <Earn {...tabProps} v={v} ausd={bal.ausd} />
         ) : tab === "Trade" ? (
-          <Trade {...tabProps} mkt={mkt} ausd={bal.ausd} />
+          <View>
+            <Segment items={["mon", "floors"] as ("mon" | "floors")[]} value={tradeView} onChange={setTradeView} render={(t) => (t === "mon" ? "MON on Perpl" : "Floors on Kuru")} />
+            <View style={{ height: 18 }} />
+            {tradeView === "mon" ? <Trade {...tabProps} mkt={mkt} ausd={bal.ausd} /> : <FloorMarket account={session.account} />}
+          </View>
         ) : (
           <You
             {...tabProps}
