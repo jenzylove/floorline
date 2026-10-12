@@ -72,9 +72,11 @@ A floor is an ERC 20 token, so it can trade on an order book like any other asse
 
 So buying a floor on Kuru is never worse than minting one, and a holder can sell before the end date.
 
+**A ladder of floors, opened every day.** Next to the flagship market, six floors trade at once, each on its own Kuru order book: 3, 6 and 10% under MON for a day, and 5, 10 and 15% under MON for a week. The keeper (`npm run kuru:ladder`) opens each floor as a vault series at today's MON price, creates its book on Kuru's Router, lists it in a small registry (`KuruLadder`, `0x9ccFD82dA30022b06bB9325aE22dA02dde5Cb293`, testnet) and quotes both sides. When a floor nears its end the next one opens; when it ends, its orders are pulled and it is settled. The app reads the registry, so a new floor shows up in it without an update, and these books take orders of any size.
+
 The keeper earns the spread: the vault's mint price is fair value plus 10% (`spreadBps = 1000`), so asks just under it sit about 9% above fair value and bids sit below it. A test asserts both (`keeper/test/kuru.test.ts`).
 
-The live book is on [/proof](https://floorline-app.vercel.app/proof), read from the market contract, and in the app under Trade. Run the maker with `npm run kuru:v2` in `keeper/`.
+The live books are on [/proof](https://floorline-app.vercel.app/proof), read from the market contracts, and in the app under Trade. Run the makers with `npm run kuru:v2` and `npm run kuru:ladder` in `keeper/`.
 
 ## The app
 
@@ -183,7 +185,7 @@ Scope of this build:
 | Agora | Mobile trading app. Passkey sign in, AUSD balance, floors paid and backed in AUSD, Perpl trades in the app. |
 | Perpl | Price, settlement oracle and hedge venue. An automated delta hedging bot: 75+ fills through Perpl's trading API, then moved on chain into a Perpl account the vault owns. The bot reads market data and candles from Perpl's API. |
 | Chainlink CRE | A workflow that computes MON's realised volatility from Perpl candles and writes it on chain as an independent check on the pricing input. |
-| Kuru | Floors as a new asset class on Kuru Spot V2: the vault mints, prices and settles them, and a keeper makes a two sided market in them on the FLOOR/USDC market Kuru's team created (testnet). |
+| Kuru | Floors as a new asset class on Kuru: the vault mints, prices and settles them. A keeper makes a two sided market on the FLOOR/USDC Spot V2 market Kuru's team created, and runs a daily ladder of six floors, each with its own Kuru book (testnet). |
 | Aurora Intents | Add money from Base, Arbitrum, Ethereum and more straight into the Monad account. |
 | Mera | The whole account layer. A passkey on the phone, no seed phrase, no extension. |
 | Envio | HyperIndex indexes every vault and volatility event for the proof page and history. |

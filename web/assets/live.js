@@ -190,3 +190,38 @@ export async function kuruBook() {
     mint: Number(premium) / 1e6 / 1000,
   };
 }
+
+// The floor ladder: one Kuru order book per floor, opened by the keeper each day at today's MON price
+// (Kuru's Router, testnet). The registry lists every book; each row is read from its own contract.
+export const LADDER = "0x9ccFD82dA30022b06bB9325aE22dA02dde5Cb293";
+const ladderAbi = parseAbi([
+  "function latest(uint256 n) view returns (uint256[] seriesIds, address[] books)",
+  "function getSeries(uint256) view returns ((uint256 marketId, uint256 strike, uint64 expiry, bool settled, address token, uint256 locked, uint256 payoutPerToken, uint256 settlePrice, uint256 owed))",
+  "function bestBidAsk() view returns (uint256, uint256)",
+]);
+
+/** Every floor on the ladder: its floor price, end, best bid and ask, and whether it is still trading. */
+export async function kuruLadder() {
+  const [ids, books] = await testnet.readContract({ address: LADDER, abi: ladderAbi, functionName: "latest", args: [24n] });
+  const now = Date.now() / 1000;
+  const rows = await Promise.all(
+    ids.map(async (id, i) => {
+      const [s, ba] = await Promise.all([
+        testnet.readContract({ address: KURU.vault, abi: ladderAbi, functionName: "getSeries", args: [id] }),
+        testnet.readContract({ address: books[i], abi: ladderAbi, functionName: "bestBidAsk" }).catch(() => [0n, 0n]),
+      ]);
+      const bid = Number(ba[0]) / 1e18;
+      const ask = Number(ba[1]) / 1e18;
+      return {
+        id: Number(id),
+        book: books[i],
+        strike: Number(s.strike) / 1e6,
+        expiry: Number(s.expiry),
+        live: !s.settled && Number(s.expiry) > now,
+        bid: bid > 0 ? bid : undefined,
+        ask: ask > 0 && ask < 1e6 ? ask : undefined,
+      };
+    }),
+  );
+  return rows.sort((a, b) => b.live - a.live || a.expiry - b.expiry || b.strike - a.strike);
+}

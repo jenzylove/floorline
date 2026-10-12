@@ -165,3 +165,17 @@ Note: some testnet addresses equal mainnet v2 addresses (same deployer and nonce
 | Maker (keeper), Kuru account 13 | `0xE2084643331b3061BcC2979B8508E5c63C171C6E` |
 
 Price precision 1e6, size precision 1e6, tick 1, minimum order 10 USDC, taker fee 0.07%, maker fee 0.04%.
+
+## Monad testnet, 2026-10-12: the floor ladder on Kuru
+
+The keeper keeps six floors open on the testnet vault, each with its own order book on Kuru's Router, and lists every
+book in a registry so the app finds them. It opens new floors each day at the current MON price and settles ended ones.
+
+| | Address / hash |
+|---|---|
+| KuruLadder registry (owner: keeper) | `0x9ccFD82dA30022b06bB9325aE22dA02dde5Cb293` (deploy `0xb0fb90fb…ef59`) |
+| Testnet vault keeper set to `0xE208…1C6E` | `0xceebdedb…d8e1` |
+| First books (series 1 to 6) | `0x5901BDAB…01FA`, `0x9A1cFD2E…2378`, `0x724262e6…AB0B`, `0x031DD0De…85b0`, `0x806fDD5F…79f0`, `0x691f0577…88dB` |
+| A wallet buys 363 floors on the 1 week 95% book | `0x462154a548f1697d75e13a4026cf7ea2aa45705d3e8da89bdcee773443cb30f6` |
+| and sells 200 back | `0x4b1563b46b07552f09fdc871f55d27ad211507122964e142052a03fb00a46d2c` |
+

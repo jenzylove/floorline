@@ -24,6 +24,8 @@ Kuru, Bring New Assets and Markets (Track 01):
 - [x] Before the V2 listing: the same market on Kuru's older Router, testnet, with a test dollar (10 Oct, quotes `0x4bbfd93d…acd5`, taker fill `0x09e31beb…9541`, refill `0xd7f51238…0865`). Retired once V2 was live.
 - [x] The infrastructure that makes them viable (vault, pricing, settlement). Live on mainnet
 
+- [x] A ladder of markets, opened daily: six floors at once (1 day at 3/6/10% under MON, 1 week at 5/10/15%), each with its own book on Kuru's Router, listed in `KuruLadder` `0x9ccFD82dA30022b06bB9325aE22dA02dde5Cb293` and quoted both sides; a wallet bought 363 floors `0x462154a5…f6` and sold 200 back `0x4b1563b4…2d` (12 Oct)
+
 Kuru, Next Consumer Trading App (Track 01):
 - [x] A spot trading product routing trades through Kuru's order book. "Floors on Kuru" in the app reads the Spot V2 book and sends orders to the market contract from the passkey account. Done on a real phone, 11 Oct: 7,700 floors bought for about 10.34 test USDC `0x402fb4f5…45c8`. Testnet
 

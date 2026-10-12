@@ -54,6 +54,10 @@
   </div>
   <div class="mute" style="font-size:14px;margin-top:10px" id="kuru"></div>
 
+  <h3 style="margin-top:44px">The floor ladder on Kuru</h3>
+  <p class="mute" style="font-size:15px;margin-top:6px">Six floors trade at once, each on its own Kuru order book: 3, 6 and 10% under MON for a day, 5, 10 and 15% under MON for a week. Every day the keeper opens new ones at today's MON price, lists their books, quotes both sides around the vault's price, and settles the ones that end. Read from the chain right now.</p>
+  <div class="feed" id="ladder"></div>
+
   <div class="hair"></div>
   <h3>Milestones</h3>
   <div class="feed" id="milestones"></div>
@@ -63,7 +67,7 @@
 
 <script type="module" src="/assets/motion.js"></script>
 <script type="module">
-import { kuruBook, KURU, $, gql, tx, addr, ADDR, ENVIO, usd, price, pct, ago, client } from "/assets/live.js";
+import { kuruBook, kuruLadder, KURU, $, gql, tx, addr, ADDR, ENVIO, usd, price, pct, ago, client } from "/assets/live.js";
 import { parseAbi } from "https://esm.sh/viem@2.57.2";
 const perplAbi = parseAbi([
   "function getPosition(uint256,uint256) view returns ((uint256 accountId,uint256 nextNodeId,uint256 prevNodeId,uint8 positionType,uint256 depositCNS,uint256 pricePNS,uint256 lotLNS,uint256 entryBlock,int256 pnlCNS,int256 deltaPnlCNS,int256 premiumPnlCNS),uint256,bool)",
@@ -183,6 +187,19 @@ async function loadKuru() {
 }
 loadKuru();
 setInterval(loadKuru, 30000);
+const MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const endsAt = (t) => { const d = new Date(t * 1000); return `${d.getUTCDate()} ${MON3[d.getUTCMonth()]} ${String(d.getUTCHours()).padStart(2, "0")}:00 UTC`; };
+async function loadLadder() {
+  try {
+    const rows = await kuruLadder();
+    const p6 = (v) => (v === undefined ? "none" : `$${v.toFixed(6)}`);
+    $("#ladder").innerHTML = rows.slice(0, 18).map((r) => `<div class="item"><span class="k">${r.live ? (r.expiry - Date.now() / 1000 < 2 * 86400 ? "1 day" : "1 week") : "ended"}</span><span>MON below $${r.strike.toFixed(5)} · ends ${endsAt(r.expiry)}${r.live ? ` · bid ${p6(r.bid)} · ask ${p6(r.ask)}` : ""}</span><a href="${KURU.explorer}/address/${r.book}" target="_blank">book ↗</a></div>`).join("") || `<div class="mute">No floors listed yet.</div>`;
+  } catch (e) {
+    $("#ladder").innerHTML = `<div class="mute">Could not read the ladder right now: ${e.message}</div>`;
+  }
+}
+loadLadder();
+setInterval(loadLadder, 60000);
 </script>
 </body>
 </html>
