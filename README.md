@@ -47,6 +47,8 @@ Built for **Monad Metropolis 2026**, Track 01: Onchain Finance & Trading. Live o
 
 A MON holder who fears a drop has two choices today: sell and lose the upside, or short a perp and risk liquidation and funding. There is no simple way on Monad to pay a small known price and be covered.
 
+The perp route is already busy. On 12 October 2026 Perpl's MON market traded about $728,000 in a day, with 3.28 million MON (about $84,000) in open positions, read from Perpl's public market data. Between 5 and 7 October MON fell 19.1% in two days, from $0.0315 to $0.0255.
+
 ## What Floorline does
 
 A floor is a fully backed put on MON, settled in AUSD.
