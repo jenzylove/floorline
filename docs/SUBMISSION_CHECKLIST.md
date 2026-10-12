@@ -7,7 +7,7 @@ Last checked: 10 Oct 2026.
 Main submission (all tracks):
 - [x] Public GitHub repo, MIT license, README with setup, attribution of external code, AI-use disclosure. https://github.com/jenzylove/floorline
 - [x] Commit history covering the build window. 30 Sep to 10 Oct, on `main`
-- [ ] Demo video ≤ 3 min, public, product running, Monad interactions visible
+- [x] Demo video ≤ 3 min, public, product running, Monad interactions visible: https://youtu.be/rr5IbMoxjOg
 - [x] Contract addresses / tx hashes; deployed to Monad mainnet. README and DEPLOYMENTS.md
 - [x] Docs: description, architecture, stack, setup, why Monad. README
 
@@ -16,7 +16,7 @@ Agora, Best Mobile Trading App (Track 01):
 - [x] Authenticates via Mera passkey. Account created on a real phone, 9 Oct
 - [x] Holds and displays an AUSD balance. 2.000341 AUSD after the 10 Oct deposit
 - [x] Executes trades through Perpl in the app. Done on a real phone, 11 Oct, from the passkey account: Perpl account #5455 opened `0x1391a70f…0a62`, trade opened `0xa06ca86f…192f`, closed `0x91e17cc5…85d7`
-- [ ] Demo video ≤ 2 min: passkey login, AUSD balance, at least one Perpl trade
+- [x] Demo video ≤ 2 min: passkey login, AUSD balance, at least one Perpl trade: https://youtu.be/7az2z-jolro
 - [x] Write-up of core features. README, "The app"
 
 Kuru, Bring New Assets and Markets (Track 01):

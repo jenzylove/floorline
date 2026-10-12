@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://floorline-app.vercel.app"><img src="https://img.shields.io/badge/live-floorline--app.vercel.app-121410" alt="Live site"></a>
+  <a href="https://youtu.be/rr5IbMoxjOg"><img src="https://img.shields.io/badge/watch-the%20demo-b8e62e" alt="Watch the demo"></a>
   <a href="https://monadscan.com/address/0x2286f16a97e592D2C90C31e3ae56E3F4A9ec5dB4"><img src="https://img.shields.io/badge/Monad-mainnet%20vault-836EF9" alt="Vault on Monad mainnet"></a>
   <a href="https://github.com/jenzylove/floorline/actions/workflows/ci.yml"><img src="https://github.com/jenzylove/floorline/actions/workflows/ci.yml/badge.svg" alt="Tests"></a>
   <a href="https://floorline-app.vercel.app/proof"><img src="https://img.shields.io/badge/proof-every%20transaction-b8e62e" alt="Proof page"></a>
@@ -28,6 +29,7 @@ Built for **Monad Metropolis 2026**, Track 01: Onchain Finance & Trading. Live o
 
 | | |
 |---|---|
+| Demo film, 2 minutes | https://youtu.be/rr5IbMoxjOg |
 | Live site | https://floorline-app.vercel.app |
 | Price a floor, no sign up | https://floorline-app.vercel.app/demo |
 | Every transaction, linked | https://floorline-app.vercel.app/proof |
@@ -36,6 +38,8 @@ Built for **Monad Metropolis 2026**, Track 01: Onchain Finance & Trading. Live o
 | Addresses and deploy hashes | [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) |
 | What was built, day by day | [docs/BUILD_LOG.md](docs/BUILD_LOG.md) |
 | Security model | [SECURITY.md](SECURITY.md) |
+| The mobile trading app, 1 minute | https://youtu.be/7az2z-jolro |
+| The hedging bot on Perpl, 1 minute | https://youtu.be/KvpWgZ5BBPE |
 
 ## The problem
 
