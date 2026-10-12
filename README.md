@@ -167,7 +167,7 @@ Scope of this build:
 * The vault runs at demo size.
 * The Chainlink CRE workflow runs in simulation and records an observed volatility; the keeper sets the pricing input.
 * Kuru is on testnet, where Kuru opens new markets.
-* The owner and keeper roles, and the review the contracts have had, are set out in [SECURITY.md](SECURITY.md).
+* Roles, safeguards and tests are set out in [SECURITY.md](SECURITY.md).
 
 ## Track and bounties
 
@@ -232,10 +232,10 @@ External code: OpenZeppelin Contracts, PRBMath, forge-std, viem, Expo and React 
 
 ## AI use
 
-Built with AI coding assistance. Product decisions, on device testing and every mainnet transaction are the author's.
+Built with AI coding assistance.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
 
-Not investment advice. Floors can expire worthless.
+Not investment advice.
