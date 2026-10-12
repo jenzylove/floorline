@@ -40,6 +40,8 @@ Built for **Monad Metropolis 2026**, Track 01: Onchain Finance & Trading. Live o
 | Security model | [SECURITY.md](SECURITY.md) |
 | The mobile trading app, 1 minute | https://youtu.be/7az2z-jolro |
 | The hedging bot on Perpl, 1 minute | https://youtu.be/KvpWgZ5BBPE |
+| The Chainlink CRE simulation, 1 minute | https://youtu.be/Qm11_jr6e3g |
+| The pitch, 2 minutes | https://youtu.be/U_itsfMYo1g |
 
 ## The problem
 
