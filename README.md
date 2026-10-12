@@ -60,6 +60,13 @@ The other side is the vault. Anyone can deposit AUSD (ERC 4626), back the floors
 
 Each floor is an ERC 20 token, so it can be resold before the date.
 
+## What sets a floor apart
+
+* **Backed before it exists.** A floor's largest possible payout is locked in the same transaction that sells it. No floor is ever sold on credit.
+* **Priced, hedged and settled in one place.** The vault reads Perpl's price, shorts on Perpl's book and settles at Perpl's price, all contracts on Monad. Nothing in between asks to be trusted: no bridge, no outside price feed, no exchange account run by a person.
+* **Protection with a market.** Every floor is a token with its own Kuru order book, so protection has a price both ways and can be sold before its date.
+* **A fingerprint, not a wallet.** No seed phrase and no extension, and a payout lands in the same account that bought the floor.
+
 ## A new market on Kuru
 
 **Floors trade on Kuru Spot V2.** Kuru's team created the FLOOR/USDC market for Floorline (`0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38`, Monad testnet), and it has live quotes and real fills, including trades made from the app on a phone.
