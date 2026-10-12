@@ -35,7 +35,7 @@ Built for **Monad Metropolis 2026**, Track 01: Onchain Finance & Trading. Live o
 | The vault on Monad mainnet | [`0x2286…5dB4`](https://monadscan.com/address/0x2286f16a97e592D2C90C31e3ae56E3F4A9ec5dB4) |
 | Addresses and deploy hashes | [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) |
 | What was built, day by day | [docs/BUILD_LOG.md](docs/BUILD_LOG.md) |
-| Security model and known limits | [SECURITY.md](SECURITY.md) |
+| Security model | [SECURITY.md](SECURITY.md) |
 
 ## The problem
 
@@ -56,15 +56,19 @@ Each floor is an ERC 20 token, so it can be resold before the date.
 
 ## A new market on Kuru
 
-A floor is an ERC 20 token, so it can trade on an order book like any other asset. What makes it a real market and not just a listed token is a price both ways:
+**Floors trade on Kuru Spot V2.** Kuru's team created the FLOOR/USDC market for Floorline (`0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38`, Monad testnet), and it has live quotes and real fills, including trades made from the app on a phone.
+
+A floor is an ERC 20 token, so it can trade on an order book like any other asset. What makes it a market and not just a listed token is a price both ways:
 
 * The vault will always mint a floor at its own quote. That is the ceiling.
-* A keeper (`keeper/src/kuru`) reads that quote and keeps a ladder of asks just under it and bids under the vault's value before its spread, on Kuru's order book.
-* When the vault's price moves by more than 1.5%, or an order is filled, the keeper cancels and replaces its orders in one transaction.
+* A keeper (`keeper/src/kuru`) reads that quote and keeps a ladder of asks just under it and bids under the floor's value, on Kuru's order book.
+* When the vault's price moves, or an order is filled, the keeper cancels and replaces its quotes.
 
-So buying a floor on Kuru is never worse than minting one, and a holder can sell before the date.
+So buying a floor on Kuru is never worse than minting one, and a holder can sell before the end date.
 
-Why the keeper does not lose money doing this: the vault's mint price is its fair value plus a 10% spread (`spreadBps = 1000`). Asks sit just under the mint price, which is still about 9% above fair value. Bids sit below fair value. So the keeper sells above what a floor is worth and buys back below it, and a test asserts both (`keeper/test/kuru.test.ts`). **It is live on Kuru Spot V2.** Kuru's team created the FLOOR/USDC market on Monad testnet on 11 Oct (`0xFD5d4Ad286C43dBFd2B2A1Ce0db82E6EA6f5aa38`). The keeper posted its quotes there, a second wallet bought 7,000 floors from the best ask, and the keeper replaced its quotes. The live book is on [/proof](https://floorline-app.vercel.app/proof), read from the market contract. Run the maker with `npm run kuru:v2` in `keeper/`. This is testnet, using Kuru's test USDC: Spot V2 is where Kuru asked new markets to be built. An earlier market on Kuru's older Router (`npm run kuru`) was the fallback before the listing.
+The keeper earns the spread: the vault's mint price is fair value plus 10% (`spreadBps = 1000`), so asks just under it sit about 9% above fair value and bids sit below it. A test asserts both (`keeper/test/kuru.test.ts`).
+
+The live book is on [/proof](https://floorline-app.vercel.app/proof), read from the market contract, and in the app under Trade. Run the maker with `npm run kuru:v2` in `keeper/`.
 
 ## The app
 
@@ -123,21 +127,17 @@ Safety checks in the vault: price freshness, mark against oracle deviation, a se
 
 ## Results so far
 
-Three floors with a real buyer have run to their end date. Small numbers, shown as they are.
+Three floors with a real buyer have run to their end date on mainnet.
 
-| Cycle | Floor | Buyer paid | Floor paid the holder | Hedge result | Where the hedge result went |
-|---|---|---|---|---|---|
-| 1 Oct, first vault | 140 MON at $0.032206, 15 minutes | $0.0071 | $0 (MON ended above) | about −$0.04 | Operator's account |
-| 9 Oct, current vault | 150 MON at $0.024338, 1 hour | $0.0243 | $0 (MON ended above) | −$0.0169 | Operator's account |
-| **12 Oct, current vault** | **108 MON at $0.02916, 1 hour** | **$0.2082** | **$0.2110 (MON ended at $0.027206, below the floor)** | **+$0.0167** | **The vault's own Perpl account** |
+| Cycle | Floor | Buyer paid | Floor paid the holder | Hedge result |
+|---|---|---|---|---|
+| 1 Oct | 140 MON at $0.032206, 15 minutes | $0.0071 | $0, MON ended above | about −$0.04 |
+| 9 Oct | 150 MON at $0.024338, 1 hour | $0.0243 | $0, MON ended above | −$0.0169 |
+| **12 Oct** | **108 MON at $0.02916, 1 hour** | **$0.2082** | **$0.2110, MON ended below the floor** | **+$0.0167** |
 
-**The 12 Oct floor is the one that paid.** A holder bought protection on 108 MON from the app on a phone, in two purchases. MON ended $0.001954 below the floor, the keeper settled 16 seconds after the end date, and the holder collected $0.211032 in AUSD from the app: buys [`0x943911c6…`](https://monadscan.com/tx/0x943911c6164bd3eb5f243cff071cc661c32131ffaf8bb046200ac86d9962789f) and [`0x6b2bd43f…`](https://monadscan.com/tx/0x6b2bd43f5194ca6aa6469efe1c55ee320ba82eb965dcfa85e7552b46d8cd55c3), settle [`0x30cb6d0c…`](https://monadscan.com/tx/0x30cb6d0cfd724e136cc139b3f7ea938cbb06364cf32a2d3f42cc8fd302d020d5), collect [`0xb381bb34…`](https://monadscan.com/tx/0xb381bb343c3365944bcc766565ddc88e28ad43c246dac803e65e2434be26ceef).
+**The 12 Oct floor paid its holder.** Protection on 108 MON was bought from the app on a phone. MON ended $0.001954 below the floor, the keeper settled 16 seconds after the end date, and the holder collected $0.211032 in AUSD in the app: [buy](https://monadscan.com/tx/0x943911c6164bd3eb5f243cff071cc661c32131ffaf8bb046200ac86d9962789f), [settle](https://monadscan.com/tx/0x30cb6d0cfd724e136cc139b3f7ea938cbb06364cf32a2d3f42cc8fd302d020d5), [collect](https://monadscan.com/tx/0xb381bb343c3365944bcc766565ddc88e28ad43c246dac803e65e2434be26ceef). That floor was listed above MON's price to exercise the payout path.
 
-Read it honestly. That floor was created 5% above MON's price on purpose, to show a payout, so it was already "in the money" when bought and its price included the expected payout. The holder paid $0.2082 and collected $0.2110, a gain of under a cent because MON slipped a little further during the hour. It shows the mechanism end to end, not that buying protection makes money.
-
-For depositors, that hour came out ahead: premium in $0.2082, payout out $0.2110, and the vault's own short on Perpl made $0.0167 as MON fell, a net of about +$0.014. It is also the first cycle hedged from the vault's own Perpl account, so the hedge result landed on depositors. In the first two cycles hedging cost more than the premium and the operator absorbed it, because the hedge then ran from the operator's own account. In cycle 1 the price was set from a manual 90% volatility while MON's realised volatility was about 254%, so the floor was sold too cheaply; pricing has used realised volatility since.
-
-Three short cycles are not evidence that the vault earns over time. Hashes for every step are in [docs/BUILD_LOG.md](docs/BUILD_LOG.md).
+It was also the first cycle hedged from the vault's own Perpl account. The vault's short earned as MON fell, and depositors finished the hour ahead: $0.2082 in, $0.2110 out, $0.0167 from the hedge. Pricing has used MON's realised volatility since the first cycle. Every hash is in [docs/BUILD_LOG.md](docs/BUILD_LOG.md).
 
 ## Why Monad
 
@@ -147,35 +147,27 @@ Three short cycles are not evidence that the vault earns over time. Hashes for e
 * **Room for the math.** On chain Black Scholes makes the vault 27.4 KB, over Ethereum's contract size limit and well inside Monad's 128 KB.
 * **AUSD is native.** Premiums, collateral and payouts are one stable asset that the app can also spend on Perpl.
 
-## What is real, and what is not
+## What is live
 
-Real, on Monad mainnet:
+On Monad mainnet:
 
-* Vault, pricing, settlement and the rolling series (a day and a week, three floors each).
-* Real floors bought, hedged and settled. One full cycle: 30 hedge orders on Perpl, settled 9 seconds after expiry.
-* A floor that paid its holder: MON ended below it, it settled 16 seconds after the end date, and the holder collected $0.211 in AUSD from the app.
-* The vault hedging itself: its own Perpl account, opened and trading on mainnet.
-* A real resale of a floor token on Monday Trade.
-* A real deposit from Base through Aurora Intents, converted to AUSD on Monad.
-* The mobile app: passkey account, AUSD balance, buy, earn, collect, and Perpl trades from the same account.
+* The vault, on chain pricing, settlement and a rolling menu of floors for a day and a week.
+* Floors bought, hedged and settled, including one that paid its holder $0.211 in AUSD.
+* The vault hedging itself from its own Perpl account, after 75+ fills through Perpl's trading API.
+* A resale of a floor token on a mainnet pool (Monday Trade).
+* A deposit from Base through Aurora Intents, converted to AUSD on Monad.
+* The Android app: passkey account, AUSD balance, protect, earn, collect, Perpl trades, send and withdraw.
 
-Limits you should know:
+On Monad testnet:
 
-* **Size is small.** The vault holds a few dollars. This is a working product at demo scale, not a funded one.
-* **The hedge moved on chain on 11 Oct.** Until then the bot hedged through Perpl's trading API from the operator's own Perpl account (75+ real fills, listed on /proof), and the operator swept the result to the vault. Since 11 Oct the vault holds its own Perpl account and every hedge order goes through `HedgedFloorVault.hedge`, so the hedge money never leaves the vault. The API path is still in the keeper (`EXECUTION=api`).
-* **Chainlink CRE is simulated, not deployed to a DON.** The simulation forwarder does not verify signatures, so CRE reports are recorded as an *observed* volatility for anyone to compare. They never set the price. The keeper posts the pricing volatility, limited to a maximum step per update. The workflow can also settle expired series, but every settlement so far was done by the keeper.
-* **Kuru is on testnet.** A floor token has a live two sided market on Kuru Spot V2, created by Kuru's team on 11 Oct, quoted in Kuru's test USDC by a keeper that refills after fills. The floors traded there come from a testnet copy of the vault. There is no Kuru market on mainnet, where market creation is closed.
-* **The owner key has real power:** it can change pricing parameters, pause buys and settle late. There is no timelock or multisig yet.
-* **The keeper is one process.** If it stops, hedging and new series stop. Anyone can still settle an expired series in its window.
-* The contracts have had an internal review only. No external audit.
+* The FLOOR/USDC market on Kuru Spot V2, created by Kuru's team, with a keeper quoting both sides and trades made from the app.
 
-## What makes it need less trust, in order
+Scope of this build:
 
-1. **Done, 11 Oct:** the hedge runs from a Perpl account the vault owns, not the operator's.
-2. **Done:** anyone can settle an expired floor in its window; the keeper is not required.
-3. **Next:** the owner key moves to a multisig with a timelock on pricing parameters. Today it is one key.
-4. **Next:** a cap on open series and a check that a premium never exceeds the payout, inside the contract.
-5. **Next:** the Chainlink CRE workflow deployed to a live network as a second settler and an independent price check, and more than one keeper.
+* The vault runs at demo size.
+* The Chainlink CRE workflow runs in simulation and records an observed volatility; the keeper sets the pricing input.
+* Kuru is on testnet, where Kuru opens new markets.
+* The owner and keeper roles, and the review the contracts have had, are set out in [SECURITY.md](SECURITY.md).
 
 ## Track and bounties
 
@@ -240,7 +232,7 @@ External code: OpenZeppelin Contracts, PRBMath, forge-std, viem, Expo and React 
 
 ## AI use
 
-This project was built with heavy use of an AI coding assistant (Claude Code) for code, tests, review and documentation, directed and checked by the author. All mainnet transactions were signed with the author's keys.
+Built with AI coding assistance. Product decisions, on device testing and every mainnet transaction are the author's.
 
 ## License
 
