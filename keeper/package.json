@@ -9,6 +9,7 @@
     "probe": "tsx scripts/probe-market-data.ts",
     "kuru": "tsx --env-file=.env src/kuru/maker.ts",
     "kuru:v2": "tsx --env-file=.env src/kuru/makerV2.ts",
+    "kuru:ladder": "tsx --env-file=.env src/kuru/ladder.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

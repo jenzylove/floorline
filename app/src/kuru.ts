@@ -20,10 +20,11 @@ export const KURU = {
 };
 const P = 1e6; // price and size precision on this market
 
-const testnet = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: ["https://testnet-rpc.monad.xyz"] } } });
+const testnet = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: ["https://testnet-rpc.monad.xyz"] } }, contracts: { multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" } } });
 // same second route as mainnet, for phones that cannot reach monad.xyz
 const transport = fallback([http("https://testnet-rpc.monad.xyz", { timeout: 8_000, retryCount: 1 }), http(`${PROXY}/rpc-testnet`, { timeout: 15_000, retryCount: 1 })]);
-const client = createPublicClient({ chain: testnet, transport });
+// reads made together go out as one multicall, so a phone stays under the public RPC's rate limit
+const client = createPublicClient({ chain: testnet, transport, batch: { multicall: true } });
 
 const marketAbi = parseAbi([
   "function getL2Book(uint256 levels) view returns (uint32[] bidPrices, uint96[] bidSizes, uint32[] askPrices, uint96[] askSizes)",
@@ -150,4 +151,129 @@ export async function kuruTrade(account: LocalAccount, side: "buy" | "sell", flo
   step(label, hash);
   await wait(hash);
   return hash;
+}
+
+// ---- the floor ladder: one Kuru order book per floor, on Kuru's Router (no minimum order) ----------------
+
+/** The registry the ladder bot lists each new floor's book in. */
+export const LADDER = "0x9ccFD82dA30022b06bB9325aE22dA02dde5Cb293" as Address;
+const LP = 1e8; // ladder books: price in 1e-8 USDC per floor
+const LS = 1e6; // and size in 1e-6 floors
+const LADDER_FEE = 0.003;
+
+export type Floor = {
+  kind: "v2" | "ladder";
+  seriesId: number;
+  book: Address;
+  token: Address;
+  strike: number; // dollars per MON
+  expiry: number; // unix seconds
+  days?: number; // 1 or 7 for ladder floors
+  bestAsk?: number;
+};
+
+const ladderAbi = parseAbi(["function latest(uint256 n) view returns (uint256[] seriesIds, address[] books)"]);
+const seriesAbi = parseAbi([
+  "function getSeries(uint256) view returns ((uint256 marketId, uint256 strike, uint64 expiry, bool settled, address token, uint256 locked, uint256 payoutPerToken, uint256 settlePrice, uint256 owed))",
+]);
+const v1Abi = parseAbi([
+  "function getL2Book() view returns (bytes)",
+  "function bestBidAsk() view returns (uint256, uint256)",
+  "function placeAndExecuteMarketBuy(uint96 _quoteAmount, uint256 _minAmountOut, bool _isMargin, bool _isFillOrKill) payable returns (uint256)",
+  "function placeAndExecuteMarketSell(uint96 _size, uint256 _minAmountOut, bool _isMargin, bool _isFillOrKill) payable returns (uint256)",
+]);
+
+/** Every floor that trades on Kuru right now: the flagship V2 market first, then the live ladder, soonest first. */
+export async function floors(): Promise<Floor[]> {
+  const now = Date.now() / 1000;
+  const flagship = await client.readContract({ address: KURU.vault, abi: seriesAbi, functionName: "getSeries", args: [0n] });
+  const out: Floor[] = [{ kind: "v2", seriesId: 0, book: KURU.market, token: KURU.floor, strike: Number(flagship.strike) / 1e6, expiry: Number(flagship.expiry) }];
+  const [ids, books] = await client.readContract({ address: LADDER, abi: ladderAbi, functionName: "latest", args: [24n] });
+  const rows = await Promise.all(
+    ids.map(async (id, i) => {
+      const [s, ba] = await Promise.all([
+        client.readContract({ address: KURU.vault, abi: seriesAbi, functionName: "getSeries", args: [id] }),
+        client.readContract({ address: books[i], abi: v1Abi, functionName: "bestBidAsk" }).catch(() => [0n, 0n] as const),
+      ]);
+      const expiry = Number(s.expiry);
+      if (s.settled || expiry < now + 300) return undefined;
+      const ask = Number(ba[1]) / 1e18;
+      const f: Floor = { kind: "ladder", seriesId: Number(id), book: books[i], token: s.token, strike: Number(s.strike) / 1e6, expiry, bestAsk: ask > 0 && ask < 1e6 ? ask : undefined };
+      return f;
+    }),
+  );
+  const ladder = rows.filter((r): r is Floor => !!r).sort((a, b) => a.expiry - b.expiry || b.strike - a.strike);
+  const span = (f: Floor) => (f.expiry - now < 2 * 86_400 ? 1 : 7);
+  return [...out, ...ladder.map((f) => ({ ...f, days: span(f) }))];
+}
+
+/** A ladder book's resting orders, read from the chain: block, then (price, size) bids until a zero, then asks. */
+function parseBook(raw: `0x${string}`): { bids: Level[]; asks: Level[] } {
+  const hex = raw.slice(2);
+  const words: bigint[] = [];
+  for (let i = 0; i + 64 <= hex.length; i += 64) words.push(BigInt(`0x${hex.slice(i, i + 64)}`));
+  const bids: Level[] = [];
+  const asks: Level[] = [];
+  let i = 1; // word 0 is the block number
+  for (; i + 1 < words.length && words[i] !== 0n; i += 2) bids.push({ price: Number(words[i]) / LP, size: Number(words[i + 1]) / LS });
+  i += 1;
+  for (; i + 1 < words.length && words[i] !== 0n; i += 2) asks.push({ price: Number(words[i]) / LP, size: Number(words[i + 1]) / LS });
+  return { bids: bids.sort((a, b) => b.price - a.price), asks: asks.sort((a, b) => a.price - b.price) };
+}
+
+/** The same view as the flagship's, for one ladder floor. Ladder trades come straight from the wallet. */
+export async function ladderView(me: Address, f: Floor): Promise<KuruView> {
+  const [raw, premium, usdcWallet, floorsWallet, mon] = await Promise.all([
+    client.readContract({ address: f.book, abi: v1Abi, functionName: "getL2Book" }),
+    client.readContract({ address: KURU.vault, abi: vaultAbi, functionName: "quote", args: [BigInt(f.seriesId), 1000n * 10n ** 18n] }).catch(() => 0n),
+    client.readContract({ address: KURU.usdc, abi: erc20Abi, functionName: "balanceOf", args: [me] }),
+    client.readContract({ address: f.token, abi: erc20Abi, functionName: "balanceOf", args: [me] }),
+    client.getBalance({ address: me }),
+  ]);
+  const { bids, asks } = parseBook(raw);
+  return {
+    bids,
+    asks,
+    mint: Number(premium) / 1e6 / 1000,
+    usdcWallet: Number(usdcWallet) / 1e6,
+    usdcKuru: 0,
+    floorsKuru: 0,
+    floorsWallet: Number(floorsWallet) / 1e18,
+    mon: Number(mon) / 1e18,
+    accountId: 0,
+  };
+}
+
+/** Allow the book to take `amount` of a token from the wallet, once per trade size. */
+async function allow(account: LocalAccount, token: Address, spender: Address, amount: bigint, step: Step) {
+  const have = await client.readContract({ address: token, abi: erc20Abi, functionName: "allowance", args: [account.address, spender] });
+  if (have >= amount) return;
+  const label = "Allow Kuru to take the payment";
+  step(label);
+  const h = await walletFor(account).writeContract({ address: token, abi: erc20Abi, functionName: "approve", args: [spender, maxUint256] });
+  step(label, h);
+  await wait(h);
+}
+
+/** Take `floors` from a ladder book at market: what rests is filled, the rest is not, nothing is left hanging. */
+export async function ladderTrade(account: LocalAccount, f: Floor, side: "buy" | "sell", floors: number, usd: number, step: Step): Promise<Hash> {
+  const w = walletFor(account);
+  const label = side === "buy" ? "Buy on Kuru" : "Sell on Kuru";
+  if (side === "buy") {
+    const spend = usd / (1 - LADDER_FEE);
+    await allow(account, KURU.usdc, f.book, BigInt(Math.ceil(spend * 1e6)), step);
+    step(label);
+    const minOut = BigInt(Math.floor(floors * 0.98)) * 10n ** 18n;
+    const h = await w.writeContract({ address: f.book, abi: v1Abi, functionName: "placeAndExecuteMarketBuy", args: [BigInt(Math.ceil(spend * LP)), minOut, false, false] });
+    step(label, h);
+    await wait(h);
+    return h;
+  }
+  await allow(account, f.token, f.book, BigInt(floors) * 10n ** 18n, step);
+  step(label);
+  const minOut = BigInt(Math.floor(usd * (1 - LADDER_FEE) * 0.97 * 1e6));
+  const h = await w.writeContract({ address: f.book, abi: v1Abi, functionName: "placeAndExecuteMarketSell", args: [BigInt(floors) * BigInt(LS), minOut, false, false] });
+  step(label, h);
+  await wait(h);
+  return h;
 }
