@@ -123,14 +123,21 @@ Safety checks in the vault: price freshness, mark against oracle deviation, a se
 
 ## Results so far
 
-Two floors with a real buyer have run to their end date. Both ended above the floor, so neither paid out. Small numbers, shown as they are.
+Three floors with a real buyer have run to their end date. Small numbers, shown as they are.
 
-| Cycle | Floor | Buyer paid | Floor paid out | Hedge result | Where the hedge result went |
+| Cycle | Floor | Buyer paid | Floor paid the holder | Hedge result | Where the hedge result went |
 |---|---|---|---|---|---|
-| 1 Oct, first vault | 140 MON at $0.032206, 15 minutes | $0.0071 | $0 | about −$0.04 | Operator's account |
-| 9 Oct, current vault | 150 MON at $0.024338, 1 hour | $0.0243 | $0 | −$0.0169 | Operator's account |
+| 1 Oct, first vault | 140 MON at $0.032206, 15 minutes | $0.0071 | $0 (MON ended above) | about −$0.04 | Operator's account |
+| 9 Oct, current vault | 150 MON at $0.024338, 1 hour | $0.0243 | $0 (MON ended above) | −$0.0169 | Operator's account |
+| **12 Oct, current vault** | **108 MON at $0.02916, 1 hour** | **$0.2082** | **$0.2110 (MON ended at $0.027206, below the floor)** | **+$0.0167** | **The vault's own Perpl account** |
 
-What this shows, plainly: depositors kept the premium both times, but hedging cost more than the premium both times, and the operator absorbed it because the hedge then ran from the operator's own Perpl account. In cycle 1 the price was set from a manual 90% volatility while MON's realised volatility was about 254%, so the floor was sold too cheaply; pricing has used realised volatility since (112% to 255% over the build). Since 11 Oct the hedge sits in the vault's own account, so its result now lands on depositors. Two short cycles are not evidence that the vault earns over time. Hashes for every step are in [docs/BUILD_LOG.md](docs/BUILD_LOG.md).
+**The 12 Oct floor is the one that paid.** A holder bought protection on 108 MON from the app on a phone, in two purchases. MON ended $0.001954 below the floor, the keeper settled 16 seconds after the end date, and the holder collected $0.211032 in AUSD from the app: buys [`0x943911c6…`](https://monadscan.com/tx/0x943911c6164bd3eb5f243cff071cc661c32131ffaf8bb046200ac86d9962789f) and [`0x6b2bd43f…`](https://monadscan.com/tx/0x6b2bd43f5194ca6aa6469efe1c55ee320ba82eb965dcfa85e7552b46d8cd55c3), settle [`0x30cb6d0c…`](https://monadscan.com/tx/0x30cb6d0cfd724e136cc139b3f7ea938cbb06364cf32a2d3f42cc8fd302d020d5), collect [`0xb381bb34…`](https://monadscan.com/tx/0xb381bb343c3365944bcc766565ddc88e28ad43c246dac803e65e2434be26ceef).
+
+Read it honestly. That floor was created 5% above MON's price on purpose, to show a payout, so it was already "in the money" when bought and its price included the expected payout. The holder paid $0.2082 and collected $0.2110, a gain of under a cent because MON slipped a little further during the hour. It shows the mechanism end to end, not that buying protection makes money.
+
+For depositors, that hour came out ahead: premium in $0.2082, payout out $0.2110, and the vault's own short on Perpl made $0.0167 as MON fell, a net of about +$0.014. It is also the first cycle hedged from the vault's own Perpl account, so the hedge result landed on depositors. In the first two cycles hedging cost more than the premium and the operator absorbed it, because the hedge then ran from the operator's own account. In cycle 1 the price was set from a manual 90% volatility while MON's realised volatility was about 254%, so the floor was sold too cheaply; pricing has used realised volatility since.
+
+Three short cycles are not evidence that the vault earns over time. Hashes for every step are in [docs/BUILD_LOG.md](docs/BUILD_LOG.md).
 
 ## Why Monad
 
@@ -146,6 +153,7 @@ Real, on Monad mainnet:
 
 * Vault, pricing, settlement and the rolling series (a day and a week, three floors each).
 * Real floors bought, hedged and settled. One full cycle: 30 hedge orders on Perpl, settled 9 seconds after expiry.
+* A floor that paid its holder: MON ended below it, it settled 16 seconds after the end date, and the holder collected $0.211 in AUSD from the app.
 * The vault hedging itself: its own Perpl account, opened and trading on mainnet.
 * A real resale of a floor token on Monday Trade.
 * A real deposit from Base through Aurora Intents, converted to AUSD on Monad.
