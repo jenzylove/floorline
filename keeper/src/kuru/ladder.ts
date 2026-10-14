@@ -28,6 +28,10 @@ const TRADING = env("KURU_TRADING") === "1";
 const LEVEL = Number(env("LADDER_LEVEL_FLOORS", "1000")); // floors per order
 const CASH_PER_BOOK = Number(env("LADDER_CASH_PER_BOOK", "25")); // USDC each book may bid with
 const STATE = "logs/kuru-ladder.json";
+// Every repricing costs about 0.1 testnet MON (cancel and place six orders), so a book reprices at once after a
+// fill, and otherwise only when the vault's price has moved a lot, and no more than every few hours.
+const REQUOTE_BPS = Number(env("LADDER_REQUOTE_BPS", "5000"));
+const MIN_REQUOTE_MS = Number(env("LADDER_MIN_REQUOTE_MS", String(6 * 3600_000)));
 
 // every book: price in 1e-8 USDC per floor (premiums are fractions of a cent), size in 1e-6 floors
 const PRICE_PRECISION = 100_000_000;
@@ -60,7 +64,7 @@ const registryAbi = parseAbi(["function add(uint256 seriesId, address book)", "f
 const chain = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
 const pub = createPublicClient({ chain, transport: http(RPC) });
 
-type BookState = { resting: Resting[]; mint?: number };
+type BookState = { resting: Resting[]; mint?: number; at?: number };
 type State = { entries: Entry[]; books: Record<string, BookState> };
 const load = (): State => (existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : { entries: [], books: {} });
 const save = (s: State) => writeFileSync(STATE, JSON.stringify(s, null, 1));
@@ -155,7 +159,9 @@ async function quoteBook(w: Wallet | undefined, me: Address, state: State, e: En
   const want = ladder(mint, BOOK, tokens, cash, QUOTES);
   const pull = !(mint > 0) && live.length > 0;
   if (!(mint > 0) && live.length === 0) return;
-  if (!pull && !shouldRequote(bs.mint, mint, changed || live.length !== bs.resting.length, 300)) return;
+  const filled = changed || live.length !== bs.resting.length;
+  const tooSoon = !filled && bs.at !== undefined && Date.now() - bs.at < MIN_REQUOTE_MS;
+  if (!pull && (tooSoon || !shouldRequote(bs.mint, mint, filled, REQUOTE_BPS))) return;
   log("ladder_quote", { id: e.id, mint, tokens, cash, bids: want.bids.length, asks: want.asks.length, pull });
   if (!w) return;
   const { hash, receipt } = await send(w, {
@@ -176,7 +182,7 @@ async function quoteBook(w: Wallet | undefined, me: Address, state: State, e: En
       /* another event */
     }
   }
-  state.books[book] = nextState(bs, live, true, placed, mint > 0 ? mint : undefined);
+  state.books[book] = { ...nextState(bs, live, true, placed, mint > 0 ? mint : undefined), at: Date.now() };
   save(state);
   log("ladder_requote", { id: e.id, hash, cancelled: live.length, placed: placed.length, mint });
 }

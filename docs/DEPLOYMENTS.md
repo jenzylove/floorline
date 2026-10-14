@@ -88,7 +88,7 @@ Setup (all status 1): keeper is the only VolFeed updater; CreReceiver is an **ob
 
 priced); pricing vol seeded at 255.1533% from the 1 Oct CRE run `0xc826024a…97eb`; MON enabled; params spread 10%,
 
-premium floor 0.1%, max price age 10 s, max vol age 1 day; hedge cap 5,000 MON; owner allowlisted for short demo
+premium floor 0.1%, max price age 10 s at deploy (since raised to 60 s; read `maxPriceAge()` on the vault), max vol age 1 day; hedge cap 5,000 MON; owner allowlisted for short demo
 
 series. Vault bytecode is 27.4 KB, above Ethereum's 24 KB but within Monad's 128 KB limit.
 

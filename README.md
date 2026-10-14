@@ -65,7 +65,7 @@ Each floor is an ERC 20 token, so it can be resold before the date.
 ## What sets a floor apart
 
 * **Backed before it exists.** A floor's largest possible payout is locked in the same transaction that sells it. No floor is ever sold on credit.
-* **Priced, hedged and settled in one place.** The vault reads Perpl's price, shorts on Perpl's book and settles at Perpl's price, all contracts on Monad. Nothing in between asks to be trusted: no bridge, no outside price feed, no exchange account run by a person.
+* **Priced, hedged and settled in one place.** The vault reads Perpl's price, shorts on Perpl's book and settles at Perpl's price, all contracts on Monad. It uses the same oracle price Perpl's own market runs on (Perpl sources it from Chainlink), so there is no bridge, no second price feed for the vault, and no exchange account run by a person.
 * **Protection with a market.** Every floor is a token with its own Kuru order book, so protection has a price both ways and can be sold before its date.
 * **A fingerprint, not a wallet.** No seed phrase and no extension, and a payout lands in the same account that bought the floor.
 
@@ -158,7 +158,7 @@ It was also the first cycle hedged from the vault's own Perpl account. The vault
 
 ## Why Monad
 
-* **The whole trade lives on one chain.** Perpl's order book and oracle are contracts on Monad, so the vault reads the price, hedges and settles against the same state, with no bridge and no off chain price feed.
+* **The whole trade lives on one chain.** Perpl's order book and oracle are contracts on Monad, so the vault reads the price, hedges and settles against the same state, with no bridge. The oracle price itself comes from Chainlink, through Perpl.
 * **Fast blocks make expiry exact.** A floor settled 9 seconds after its expiry on mainnet. The hedge can be adjusted every few blocks for cents.
 * **Cheap gas keeps a small floor worth buying.** Volatility is reposted and new series are opened around the clock; on a slow, costly chain that upkeep would cost more than the premiums.
 * **Room for the math.** On chain Black Scholes makes the vault 27.4 KB, over Ethereum's contract size limit and well inside Monad's 128 KB.
