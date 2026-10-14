@@ -111,7 +111,10 @@ async function main() {
   if (!key) throw new Error("KEEPER_PRIVATE_KEY is not set");
   const c = clients(key);
   const m = await readMarket();
-  if (TRADING) for (const t of [m.base, m.quote]) await depositAll(c, t); // anything still in the wallet goes to work
+  // floors still in the wallet go to work. USDC stays: the same wallet runs the floor ladder, which pays for
+  // its floors from it. Set KURU_SWEEP_QUOTE=1 to move the wallet's USDC into Kuru as well.
+  const sweep = process.env.KURU_SWEEP_QUOTE === "1" ? [m.base, m.quote] : [m.base];
+  if (TRADING) for (const t of sweep) await depositAll(c, t);
   const userId = BigInt(await accountIdOf(c.account.address));
   if (userId === 0n) throw new Error("the maker has no Kuru account yet: deposit first");
   log("kuru_v2_mode", { market: V2.market, vault: V2.vault, maker: c.account.address, userId: Number(userId), trading: TRADING, everyMs: EVERY_MS, levelUsd: LEVEL_USD });
