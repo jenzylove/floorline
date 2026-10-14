@@ -43,13 +43,26 @@ export class MarketData extends EventEmitter {
     for (const m of markets) this.books.set(m, new Book());
   }
 
+  private watchdog?: ReturnType<typeof setInterval>;
+  private lastFrameAt = Date.now();
+
   start() {
     this.stopped = false;
     this.connect();
+    // A stream can go quiet without closing (seen on 14 Oct: no frames for minutes, no close event). The
+    // heartbeat arrives every block, so 30 seconds of silence means the socket is dead: drop it and reconnect.
+    this.watchdog = setInterval(() => {
+      if (this.stopped || !this.connected) return;
+      if (Date.now() - this.lastFrameAt > 30_000) {
+        log("md.stale", { silentMs: Date.now() - this.lastFrameAt });
+        this.ws?.terminate();
+      }
+    }, 10_000);
   }
 
   stop() {
     this.stopped = true;
+    if (this.watchdog) clearInterval(this.watchdog);
     this.ws?.close();
   }
 
@@ -61,6 +74,7 @@ export class MarketData extends EventEmitter {
     const ws = new WebSocket(`${this.wsUrl}/ws/v1/market-data`);
     this.ws = ws;
     this.lastSn = undefined;
+    this.lastFrameAt = Date.now();
     ws.on("open", () => {
       this.retry = 0;
       const subs = [
@@ -73,6 +87,7 @@ export class MarketData extends EventEmitter {
       log("md.open", { streams: subs.map((s) => s.stream) });
     });
     ws.on("message", (raw) => {
+      this.lastFrameAt = Date.now();
       try {
         this.handle(JSON.parse(raw.toString()));
       } catch (e) {
