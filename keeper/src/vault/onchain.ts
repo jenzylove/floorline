@@ -85,6 +85,13 @@ export class VaultExecutor {
   }
 
   private async send(label: string, req: Parameters<WalletClient["writeContract"]>[0]): Promise<{ hash: Hex; ok: boolean }> {
+    // Monad charges the whole gas limit, not the gas used, so reserve what this call needs plus 25%, never
+    // more than the fixed ceiling. If the estimate fails the call would revert, so it is not sent.
+    if (req.gas) {
+      const est = await this.client.estimateContractGas({ ...(req as object), account: this.wallet.account! } as never);
+      const want = (est * 125n) / 100n;
+      req = { ...req, gas: want < req.gas ? want : req.gas };
+    }
     const hash = await this.wallet.writeContract(req);
     const receipt = await this.client.waitForTransactionReceipt({ hash, timeout: 60_000 });
     const ok = receipt.status === "success";
