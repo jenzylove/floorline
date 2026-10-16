@@ -270,7 +270,12 @@ async function main() {
       log("ladder_error", { step: "cycle", error: short(err) });
     }
     if (env("KURU_ONCE") === "1") return;
-    await new Promise((r) => setTimeout(r, EVERY_MS));
+    // Anyone may settle only in the two minutes after a floor ends, so wake up just after the next end
+    // rather than waiting out the full interval.
+    const now = Date.now();
+    const next = load().entries.filter((e) => !e.settled && e.expiry * 1000 > now).map((e) => e.expiry * 1000 + 5_000);
+    const wait = Math.max(5_000, Math.min(EVERY_MS, ...next.map((t) => t - now)));
+    await new Promise((r) => setTimeout(r, wait));
   }
 }
 main();
